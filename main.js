@@ -1,0 +1,244 @@
+const { app, BrowserWindow, ipcMain, screen, shell, Tray, Menu, nativeImage } = require('electron');
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+let mainWindow = null;
+let tray = null;
+let trackerProc = null;
+
+const DEFAULT_BOOKMARKS_PATH = path.join(__dirname, 'bookmarks.json');
+
+function getBookmarksFilePath() {
+  if (app.isPackaged) {
+    return path.join(app.getPath('userData'), 'bookmarks.json');
+  }
+  return DEFAULT_BOOKMARKS_PATH;
+}
+
+function readBookmarks() {
+  const targetPath = getBookmarksFilePath();
+  try {
+    if (fs.existsSync(targetPath)) {
+      const raw = fs.readFileSync(targetPath, 'utf8');
+      return JSON.parse(raw);
+    }
+    if (fs.existsSync(DEFAULT_BOOKMARKS_PATH)) {
+      const raw = fs.readFileSync(DEFAULT_BOOKMARKS_PATH, 'utf8');
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error('Failed to read bookmarks.json:', err);
+  }
+  return [
+    { id: 'bm-1', name: '네이버 (Naver)', url: 'https://www.naver.com', icon: '🌰' },
+    { id: 'bm-2', name: '유튜브 (YouTube)', url: 'https://www.youtube.com', icon: '🍺' },
+    { id: 'bm-3', name: '구글 (Google)', url: 'https://www.google.com', icon: '🍘' }
+  ];
+}
+
+function writeBookmarks(bookmarks) {
+  try {
+    const targetPath = getBookmarksFilePath();
+    fs.writeFileSync(targetPath, JSON.stringify(bookmarks, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('Failed to write bookmarks.json:', err);
+    return false;
+  }
+}
+
+function createTrayIcon() {
+  const svgIcon = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <circle cx="16" cy="17" r="12" fill="#FFF7DF" stroke="#3B2314" stroke-width="2.5"/>
+      <path d="M 5 14 Q 16 4 27 14 Z" fill="#7B3F11"/>
+      <circle cx="11.5" cy="18" r="1.8" fill="#2B1810"/>
+      <circle cx="20.5" cy="18" r="1.8" fill="#2B1810"/>
+    </svg>
+  `;
+  const base64 = Buffer.from(svgIcon).toString('base64');
+  return nativeImage.createFromDataURL(`data:image/svg+xml;base64,${base64}`);
+}
+
+function startWindowTracker() {
+  const scriptPath = path.join(__dirname, 'scripts', 'window-tracker.ps1');
+  if (!fs.existsSync(scriptPath)) return;
+
+  trackerProc = spawn('powershell.exe', [
+    '-NoProfile',
+    '-ExecutionPolicy', 'Bypass',
+    '-WindowStyle', 'Hidden',
+    '-File', scriptPath,
+    String(process.pid)
+  ], {
+    windowsHide: true
+  });
+
+  let buffer = '';
+  trackerProc.stdout.on('data', (chunk) => {
+    buffer += chunk.toString('utf8');
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop() || '';
+
+    const lastLine = lines.filter((l) => l.trim().startsWith('[')).pop();
+    if (!lastLine || !mainWindow || mainWindow.isDestroyed()) return;
+
+    try {
+      const rawWindows = JSON.parse(lastLine);
+      const display = screen.getPrimaryDisplay();
+      const scale = display.scaleFactor || 1;
+      const workArea = display.workArea;
+
+      // 물리 픽셀(Physical Pixels)을 Electron 창 내부 CSS 좌표(DIP)로 변환
+      const normalized = rawWindows.map((w) => {
+        const dipX = Math.round(w.x / scale) - workArea.x;
+        const dipY = Math.round(w.y / scale) - workArea.y;
+        const dipW = Math.round(w.width / scale);
+        const dipH = Math.round(w.height / scale);
+        const isNearlyFull = Boolean(
+          w.isMaximized ||
+          (dipW >= workArea.width * 0.93 && dipH >= workArea.height * 0.90)
+        );
+        return {
+          hwnd: w.hwnd,
+          title: w.title,
+          proc: w.proc,
+          x: dipX,
+          y: dipY,
+          width: dipW,
+          height: dipH,
+          isForeground: w.isForeground,
+          isMaximized: isNearlyFull,
+          z: w.z
+        };
+      });
+
+      mainWindow.webContents.send('windows-update', normalized);
+    } catch (_) {}
+  });
+
+  trackerProc.on('error', () => {});
+}
+
+function createWindow() {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const workArea = primaryDisplay.workArea;
+
+  mainWindow = new BrowserWindow({
+    x: workArea.x,
+    y: workArea.y,
+    width: workArea.width,
+    height: workArea.height,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    resizable: false,
+    movable: false,
+    hasShadow: false,
+    skipTaskbar: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  mainWindow.setAlwaysOnTop(true, 'screen-saver');
+  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  mainWindow.setIgnoreMouseEvents(false);
+
+  mainWindow.loadFile('index.html');
+
+  try {
+    tray = new Tray(createTrayIcon());
+    tray.setToolTip('쿠리만쥬 시메지 타이머 (밤만쥬 선배)');
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: '🌰 타이머 설정창 열기/닫기',
+        click: () => mainWindow?.webContents.send('app-command', 'toggle-timer-panel')
+      },
+      {
+        label: '🪂 쿠리만쥬 위에서 다시 소환',
+        click: () => mainWindow?.webContents.send('app-command', 'respawn-kurimanju')
+      },
+      {
+        label: '🍺 즉시 「하아ー(ハーッ!)」 보기',
+        click: () => mainWindow?.webContents.send('app-command', 'trigger-haa')
+      },
+      {
+        label: '🎒 가방(북마크) 열기',
+        click: () => mainWindow?.webContents.send('app-command', 'open-bag')
+      },
+      { type: 'separator' },
+      {
+        label: '❌ 종료하기',
+        click: () => app.quit()
+      }
+    ]);
+    tray.setContextMenu(contextMenu);
+    tray.on('click', () => {
+      mainWindow?.webContents.send('app-command', 'toggle-timer-panel');
+    });
+  } catch (e) {
+    console.warn('Tray creation skipped:', e);
+  }
+
+  startWindowTracker();
+}
+
+app.whenReady().then(() => {
+  createWindow();
+
+  ipcMain.on('set-ignore-mouse-events', (event, ignore) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return;
+    if (ignore) {
+      win.setIgnoreMouseEvents(true, { forward: true });
+    } else {
+      win.setIgnoreMouseEvents(false);
+    }
+  });
+
+  ipcMain.handle('get-bookmarks', () => {
+    return readBookmarks();
+  });
+
+  ipcMain.handle('list-sprite-files', () => {
+    try {
+      const dir = path.join(__dirname, 'assets', 'sprites');
+      if (!fs.existsSync(dir)) return [];
+      return fs.readdirSync(dir);
+    } catch (_) {
+      return [];
+    }
+  });
+
+  ipcMain.handle('save-bookmarks', (_event, bookmarks) => {
+    return writeBookmarks(bookmarks);
+  });
+
+  ipcMain.handle('open-external-url', async (_event, rawUrl) => {
+    if (!rawUrl || typeof rawUrl !== 'string') return false;
+    let target = rawUrl.trim();
+    if (!/^https?:\/\//i.test(target)) {
+      target = 'https://' + target;
+    }
+    await shell.openExternal(target);
+    return true;
+  });
+
+  ipcMain.on('quit-app', () => {
+    app.quit();
+  });
+});
+
+app.on('before-quit', () => {
+  if (trackerProc) {
+    try { trackerProc.kill(); } catch (_) {}
+  }
+});
+
+app.on('window-all-closed', () => {
+  app.quit();
+});

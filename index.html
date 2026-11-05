@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>쿠리만쥬 시메지 타이머</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- 상단 우측 미니 컨트롤 바 (항상 조작 가능) -->
+  <div id="mini-hud" class="interactive-ui">
+    <div class="hud-left">
+      <span class="hud-badge">🌰 쿠리만쥬 타이머</span>
+      <span id="hud-time-display" class="hud-time">00:00</span>
+    </div>
+    <div class="hud-actions">
+      <button id="btn-toggle-setup" class="hud-btn" title="타이머 설정 열기/닫기">⏱️ 설정</button>
+      <button id="btn-open-bag-hud" class="hud-btn" title="쿠리만쥬 가방(북마크) 열기">🎒 가방</button>
+      <button id="btn-quit" class="hud-btn hud-btn-danger" title="프로그램 종료">✕</button>
+    </div>
+  </div>
+
+  <!-- 타이머 설정 & 시메지 컨트롤 패널 -->
+  <div id="timer-setup-panel" class="interactive-ui">
+    <div class="panel-header">
+      <div class="panel-title-row">
+        <span class="panel-icon">🌰</span>
+        <div>
+          <h1>쿠리만쥬 시메지 타이머</h1>
+          <p class="subtitle">타이머를 시작하면 밤만쥬 선배가 화면을 돌아다녀요!</p>
+        </div>
+      </div>
+      <button id="btn-Minimize-panel" class="icon-close-btn" title="패널 접기">ㅡ</button>
+    </div>
+
+    <!-- 빠른 프리셋 버튼 -->
+    <div class="preset-group">
+      <button class="preset-btn" data-min="0" data-sec="15">⚡ 15초 (테스트)</button>
+      <button class="preset-btn" data-min="5" data-sec="0">🍵 5분</button>
+      <button class="preset-btn" data-min="15" data-sec="0">🍘 15분</button>
+      <button class="preset-btn active" data-min="25" data-sec="0">🍺 25분 집중</button>
+      <button class="preset-btn" data-min="50" data-sec="0">🔥 50분 집중</button>
+    </div>
+
+    <!-- 직접 시간 입력 -->
+    <div class="time-input-row">
+      <div class="time-field">
+        <input type="number" id="input-minutes" min="0" max="999" value="25" />
+        <label for="input-minutes">분 (Min)</label>
+      </div>
+      <span class="time-colon">:</span>
+      <div class="time-field">
+        <input type="number" id="input-seconds" min="0" max="59" value="0" />
+        <label for="input-seconds">초 (Sec)</label>
+      </div>
+    </div>
+
+    <!-- 타이머 시작 / 일시정지 / 초기화 버튼 -->
+    <div class="primary-actions">
+      <button id="btn-start-timer" class="btn-primary">▶ 타이머 시작 &amp; 쿠리만쥬 소환</button>
+      <button id="btn-pause-timer" class="btn-secondary hidden">⏸ 일시정지</button>
+      <button id="btn-reset-timer" class="btn-outline hidden">↺ 초기화</button>
+    </div>
+
+    <!-- 동작 즉시 테스트 & 옵션 -->
+    <div class="test-gestures-box">
+      <div class="box-label">🎮 제스처 바로 시켜보기 (테스트용)</div>
+      <div class="gesture-btns">
+        <button class="gesture-btn" data-action="walk">🐾 걷기</button>
+        <button class="gesture-btn" data-action="climb-up">🧗 벽 올라가기</button>
+        <button class="gesture-btn" data-action="climb-down">🧗‍♂️ 벽 내려오기</button>
+        <button class="gesture-btn" data-action="ceiling">🦇 천장 타기</button>
+        <button class="gesture-btn" data-action="drop">🪂 위에서 낙하</button>
+        <button class="gesture-btn" data-action="snack">🍘 안주 먹방</button>
+        <button class="gesture-btn" data-action="haa">🍺 하아ー!</button>
+        <button class="gesture-btn" data-action="bag">🎒 가방 열기</button>
+      </div>
+      <div class="guide-tip">
+        💡 <b>조작 팁:</b> 캐릭터를 <b>좌클릭 드래그</b>하면 낑낑거리며 잡히고, <b>우클릭</b>(또는 잡은 채로 우클릭)하면 <b>가방(사이트 런처)</b>을 엽니다!
+      </div>
+    </div>
+  </div>
+
+  <!-- 화면을 돌아다니는 쿠리만쥬 시메지 컨테이너 -->
+  <div id="kurimanju-actor" class="interactive-ui hidden">
+    <!-- 머리 위 타이머 배지 -->
+    <div id="actor-timer-pill" class="actor-timer-pill">25:00</div>
+
+    <!-- 대사/이펙트 말풍선 -->
+    <div id="actor-speech" class="actor-speech hidden">하아ー(ハーッ)!!</div>
+
+    <!-- 가방 뒤적거릴 때 반짝/부스럭 이펙트 링 -->
+    <div id="bag-effect-ring" class="bag-effect-ring hidden">
+      <span class="effect-tag">부스럭 부스럭..🎒✨</span>
+    </div>
+
+    <!-- 실제 쿠리만쥬 스프라이트 이미지 -->
+    <div id="sprite-wrapper" class="sprite-wrapper">
+      <img id="kurimanju-img" src="assets/sprites/idle.png" alt="Kurimanju" draggable="false" />
+    </div>
+  </div>
+
+  <!-- 우클릭 시 열리는 쿠리만쥬 보따리(가방) 북마크 팝업 -->
+  <div id="bag-menu" class="interactive-ui hidden">
+    <div class="bag-header">
+      <div class="bag-title">
+        <span class="bag-knot-icon">🎒</span>
+        <div>
+          <h3>쿠리만쥬의 보따리 가방</h3>
+          <p>어느 사이트를 꺼내 볼까요?</p>
+        </div>
+      </div>
+      <button id="btn-close-bag" class="bag-close-btn" title="가방 닫기">✕</button>
+    </div>
+
+    <!-- 등록된 사이트 목록 -->
+    <div id="bookmark-list" class="bookmark-list"></div>
+
+    <!-- 사이트 추가 토글 버튼 -->
+    <div class="bag-footer">
+      <button id="btn-show-add-form" class="btn-add-site">+ 가방에 새 사이트 넣기</button>
+    </div>
+
+    <!-- 새 사이트 등록 폼 -->
+    <form id="add-bookmark-form" class="add-bookmark-form hidden">
+      <div class="form-row">
+        <label>아이콘</label>
+        <div id="emoji-selector" class="emoji-selector">
+          <button type="button" class="emoji-opt selected" data-emoji="🌰">🌰</button>
+          <button type="button" class="emoji-opt" data-emoji="🍺">🍺</button>
+          <button type="button" class="emoji-opt" data-emoji="🍘">🍘</button>
+          <button type="button" class="emoji-opt" data-emoji="☕">☕</button>
+          <button type="button" class="emoji-opt" data-emoji="📺">📺</button>
+          <button type="button" class="emoji-opt" data-emoji="💻">💻</button>
+          <button type="button" class="emoji-opt" data-emoji="🎵">🎵</button>
+          <button type="button" class="emoji-opt" data-emoji="🎮">🎮</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <input type="text" id="bm-name-input" placeholder="사이트 이름 (예: 유튜브)" required />
+      </div>
+      <div class="form-row">
+        <input type="text" id="bm-url-input" placeholder="URL 주소 (예: youtube.com)" required />
+      </div>
+      <div class="form-actions">
+        <button type="button" id="btn-cancel-add" class="btn-cancel">취소</button>
+        <button type="submit" class="btn-save">가방에 저장</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 타이머 종료 시 나타나는 「하아ー(ハーッ!)」 완료 토스트 팝업 -->
+  <div id="timer-done-toast" class="interactive-ui hidden">
+    <div class="toast-title">🍺 「하아ー(ハーッ)!!」 타이머 완료!</div>
+    <p class="toast-desc">고생했어요! 밤만쥬 선배와 한잔하며 쉬어갈까요?</p>
+    <div class="toast-btns">
+      <button id="btn-toast-break" class="btn-toast-primary">🍵 5분 휴식 시작</button>
+      <button id="btn-toast-bag" class="btn-toast-secondary">🎒 가방에서 사이트 열기</button>
+      <button id="btn-toast-dismiss" class="btn-toast-close">닫기</button>
+    </div>
+  </div>
+
+  <script src="sprite-config.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>
+

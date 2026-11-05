@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140" width="140" height="140">
+  <defs>
+    <filter id="shadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+    <clipPath id="headClip">
+      <ellipse cx="70" cy="66" rx="44" ry="39"/>
+    </clipPath>
+    <clipPath id="squishClip">
+      <ellipse cx="70" cy="76" rx="50" ry="32"/>
+    </clipPath>
+    <linearGradient id="chestnutGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6B3710"/>
+      <stop offset="65%" stop-color="#8A4B19"/>
+      <stop offset="100%" stop-color="#9B5722"/>
+    </linearGradient>
+  </defs>
+  <g filter="url(#shadow)">
+    
+    <!-- Feet stepping -->
+    <ellipse cx="52" cy="120" rx="9" ry="6" transform="rotate(-15 52 120)" fill="#FFF7DF" stroke="#3B2314" stroke-width="3"/>
+    <ellipse cx="86" cy="125" rx="9" ry="6" transform="rotate(10 86 125)" fill="#FFF7DF" stroke="#3B2314" stroke-width="3"/>
+    <!-- Body -->
+    <ellipse cx="70" cy="102" rx="28" ry="22" fill="#FFF7DF" stroke="#3B2314" stroke-width="3"/>
+    <!-- Arms swinging -->
+    <ellipse cx="39" cy="96" rx="8" ry="12" transform="rotate(38 39 96)" fill="#FFF7DF" stroke="#3B2314" stroke-width="3"/>
+    <ellipse cx="100" cy="103" rx="8" ry="12" transform="rotate(-12 100 103)" fill="#FFF7DF" stroke="#3B2314" stroke-width="3"/>
+    
+    <!-- Ears -->
+    <circle cx="37" cy="38" r="11" fill="#FFF7DF" stroke="#3B2314" stroke-width="3"/>
+    <circle cx="37" cy="38" r="5.5" fill="#F5D5B8"/>
+    <circle cx="103" cy="38" r="11" fill="#FFF7DF" stroke="#3B2314" stroke-width="3"/>
+    <circle cx="103" cy="38" r="5.5" fill="#F5D5B8"/>
+    <!-- Main Head Base -->
+    <ellipse cx="70" cy="64" rx="44" ry="39" fill="#FFF7DF" stroke="#3B2314" stroke-width="3"/>
+    <!-- Chestnut Brown Top (Kurimanju signature) -->
+    <g clip-path="url(#headClip)">
+      <ellipse cx="70" cy="41" rx="48" ry="26" fill="url(#chestnutGrad)"/>
+      <!-- Gloss on chestnut top -->
+      <ellipse cx="58" cy="33" rx="14" ry="5" fill="#FFFFFF" opacity="0.28" transform="rotate(-10 58 33)"/>
+    </g>
+    <!-- Re-stroke head outline cleanly -->
+    <ellipse cx="70" cy="64" rx="44" ry="39" fill="none" stroke="#3B2314" stroke-width="3"/>
+  
+    
+    <!-- Blush -->
+    <ellipse cx="46" cy="73" rx="7.5" ry="4.5" fill="#FF9E9E" opacity="0.75"/>
+    <ellipse cx="94" cy="73" rx="7.5" ry="4.5" fill="#FF9E9E" opacity="0.75"/>
+    <!-- Eyes -->
+    <circle cx="56" cy="66" r="4.2" fill="#2B1810"/>
+    <circle cx="54.5" cy="64.5" r="1.4" fill="#FFFFFF"/>
+    <circle cx="84" cy="66" r="4.2" fill="#2B1810"/>
+    <circle cx="82.5" cy="64.5" r="1.4" fill="#FFFFFF"/>
+    <!-- Under-eye cute lines -->
+    <path d="M 53 73 Q 56 74.5 59 73" fill="none" stroke="#3B2314" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M 81 73 Q 84 74.5 87 73" fill="none" stroke="#3B2314" stroke-width="1.6" stroke-linecap="round"/>
+    <!-- Mouth (ω) -->
+    <path d="M 64 73 Q 67 77 70 73.5 Q 73 77 76 73" fill="none" stroke="#3B2314" stroke-width="2.3" stroke-linecap="round"/>
+  
+  
+  </g>
+</svg>

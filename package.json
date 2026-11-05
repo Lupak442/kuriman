@@ -1,0 +1,21 @@
+{
+  "name": "kurimanju-shimeji-timer",
+  "version": "1.0.0",
+  "description": "Chiikawa Kurimanju Desktop Shimeji with Timer & Bag Bookmark Launcher",
+  "main": "main.js",
+  "scripts": {
+    "start": "node start.js"
+  },
+  "keywords": [
+    "chiikawa",
+    "kurimanju",
+    "shimeji",
+    "timer",
+    "electron"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}

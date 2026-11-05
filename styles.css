@@ -1,0 +1,769 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  font-family: 'Pretendard', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* 미니 상단 HUD 바 */
+#mini-hud {
+  position: fixed;
+  top: 14px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 250, 238, 0.96);
+  border: 2.5px solid #4A2810;
+  border-radius: 999px;
+  padding: 6px 12px 6px 14px;
+  box-shadow: 0 6px 18px rgba(59, 35, 20, 0.22);
+  z-index: 9000;
+}
+
+.hud-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-badge {
+  font-size: 13px;
+  font-weight: 800;
+  color: #5C3010;
+}
+
+.hud-time {
+  font-size: 15px;
+  font-weight: 900;
+  color: #FFF;
+  background: #7B3F11;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hud-btn {
+  background: #FFF3D6;
+  border: 1.8px solid #5C3010;
+  color: #4A2810;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s;
+}
+
+.hud-btn:hover {
+  background: #FFE2A8;
+  transform: translateY(-1px);
+}
+
+.hud-btn-danger {
+  background: #FFE5E5;
+  color: #B42318;
+  border-color: #B42318;
+  padding: 4px 8px;
+}
+
+.hud-btn-danger:hover {
+  background: #FECACA;
+}
+
+/* 타이머 설정 메인 패널 */
+#timer-setup-panel {
+  position: fixed;
+  top: 64px;
+  right: 18px;
+  width: 370px;
+  background: #FFFDF7;
+  border: 3px solid #4A2810;
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 12px 32px rgba(45, 23, 8, 0.28);
+  z-index: 8900;
+  animation: popIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.panel-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel-icon {
+  font-size: 28px;
+  background: #FDE8C4;
+  border: 2px solid #5C3010;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-header h1 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #3B2314;
+}
+
+.subtitle {
+  font-size: 11.5px;
+  color: #7C5841;
+  margin-top: 2px;
+}
+
+.icon-close-btn {
+  background: #F5E6D3;
+  border: 1.5px solid #5C3010;
+  color: #4A2810;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.preset-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.preset-btn {
+  flex: 1 1 auto;
+  background: #FFF6E5;
+  border: 1.8px solid #8A542E;
+  color: #4A2810;
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.preset-btn:hover,
+.preset-btn.active {
+  background: #7B3F11;
+  color: #FFFFFF;
+  border-color: #4A2810;
+}
+
+.time-input-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #FDF3E1;
+  border: 2px dashed #C69C72;
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.time-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.time-field input {
+  width: 82px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 900;
+  color: #3B2314;
+  background: #FFFFFF;
+  border: 2px solid #7B3F11;
+  border-radius: 10px;
+  padding: 4px;
+  outline: none;
+}
+
+.time-field label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7C5841;
+  margin-top: 3px;
+}
+
+.time-colon {
+  font-size: 24px;
+  font-weight: 900;
+  color: #5C3010;
+  margin-bottom: 14px;
+}
+
+.primary-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.btn-primary {
+  flex: 1;
+  background: linear-gradient(180deg, #8B4A1B 0%, #6B3710 100%);
+  color: #FFFFFF;
+  border: 2px solid #3B2314;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #3B2314;
+  transition: transform 0.1s;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.btn-primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #3B2314;
+}
+
+.btn-secondary {
+  flex: 1;
+  background: #F59E0B;
+  color: #FFFFFF;
+  border: 2px solid #3B2314;
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-outline {
+  background: #FFF;
+  color: #4A2810;
+  border: 2px solid #4A2810;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.test-gestures-box {
+  background: #F9F2E7;
+  border: 1.5px solid #DEC3A5;
+  border-radius: 14px;
+  padding: 10px;
+}
+
+.box-label {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #5C3010;
+  margin-bottom: 7px;
+}
+
+.gesture-btns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.gesture-btn {
+  background: #FFFFFF;
+  border: 1.5px solid #8A542E;
+  color: #3B2314;
+  border-radius: 8px;
+  padding: 5px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.gesture-btn:hover {
+  background: #FFE9C2;
+}
+
+.guide-tip {
+  font-size: 11px;
+  line-height: 1.45;
+  color: #6B4930;
+  background: #FFF9EE;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border-left: 3px solid #3B9E66;
+}
+
+/* 화면을 돌아다니는 쿠리만쥬 캐릭터 */
+#kurimanju-actor {
+  position: fixed;
+  left: 300px;
+  top: 200px;
+  width: 135px;
+  height: 135px;
+  z-index: 8500;
+  cursor: grab;
+  touch-action: none;
+}
+
+#kurimanju-actor.grabbing {
+  cursor: grabbing;
+}
+
+.sprite-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s ease-out;
+}
+
+#kurimanju-img {
+  width: 135px;
+  height: 135px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.25));
+}
+
+/* 쿠리만쥬 머리 위 타이머 배지 */
+.actor-timer-pill {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(59, 35, 20, 0.88);
+  color: #FFF7DF;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1.5px solid #FFE2A8;
+  white-space: nowrap;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* 말풍선 */
+.actor-speech {
+  position: absolute;
+  top: -54px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #FFFFFF;
+  color: #3B2314;
+  border: 2.5px solid #3B2314;
+  border-radius: 14px;
+  padding: 5px 11px;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  animation: speechBounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 8600;
+}
+
+.actor-speech::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 7px 6px 0;
+  border-style: solid;
+  border-color: #3B2314 transparent;
+}
+
+@keyframes speechBounce {
+  0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+/* 가방 뒤적거리는 이펙트 */
+.bag-effect-ring {
+  position: absolute;
+  inset: -12px;
+  border: 3px dashed #3B9E66;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(75, 181, 120, 0.22) 0%, rgba(75, 181, 120, 0) 70%);
+  pointer-events: none;
+  animation: pulseRing 1.2s infinite ease-in-out;
+}
+
+.effect-tag {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #3B9E66;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1.5px solid #235E3C;
+  white-space: nowrap;
+}
+
+@keyframes pulseRing {
+  0%, 100% { transform: scale(0.97); opacity: 0.9; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+/* 우클릭 가방(보따리) 북마크 메뉴 */
+#bag-menu {
+  position: fixed;
+  width: 300px;
+  background: #F4FBF7;
+  border: 3px solid #266341;
+  border-radius: 20px;
+  padding: 14px;
+  box-shadow: 0 12px 28px rgba(24, 68, 43, 0.32);
+  z-index: 9200;
+  animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bag-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 2px dashed #A3D9B8;
+}
+
+.bag-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bag-knot-icon {
+  font-size: 24px;
+  background: #3B9E66;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #205738;
+}
+
+.bag-title h3 {
+  font-size: 14.5px;
+  font-weight: 900;
+  color: #1B4B30;
+}
+
+.bag-title p {
+  font-size: 11px;
+  color: #3D7A57;
+  font-weight: 600;
+}
+
+.bag-close-btn {
+  background: #E2F2E9;
+  border: 1.5px solid #266341;
+  color: #1B4B30;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.bookmark-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  padding-right: 2px;
+}
+
+.bookmark-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+  border: 2px solid #74C396;
+  border-radius: 12px;
+  padding: 7px 10px;
+  transition: transform 0.12s, background 0.12s, border-color 0.12s;
+}
+
+.bookmark-item:hover {
+  background: #EBF9F0;
+  border-color: #2E8555;
+  transform: translateX(2px);
+}
+
+.bookmark-link-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.bm-icon {
+  font-size: 19px;
+  flex-shrink: 0;
+}
+
+.bm-info {
+  overflow: hidden;
+}
+
+.bm-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1E3A2B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bm-url {
+  font-size: 10.5px;
+  color: #648C74;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bm-delete-btn {
+  background: none;
+  border: none;
+  color: #9CA3AF;
+  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.bm-delete-btn:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+.btn-add-site {
+  width: 100%;
+  background: #3B9E66;
+  color: #FFFFFF;
+  border: 2px solid #1E5636;
+  border-radius: 11px;
+  padding: 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+
+.btn-add-site:hover {
+  filter: brightness(1.07);
+}
+
+.add-bookmark-form {
+  margin-top: 8px;
+  background: #E7F6EC;
+  border: 2px solid #68B989;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.form-row {
+  margin-bottom: 7px;
+}
+
+.form-row label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: #1E4D32;
+  margin-bottom: 4px;
+}
+
+.emoji-selector {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.emoji-opt {
+  background: #FFFFFF;
+  border: 1.5px solid #96CFAF;
+  border-radius: 7px;
+  width: 28px;
+  height: 28px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.emoji-opt.selected {
+  background: #3B9E66;
+  border-color: #1B4B30;
+  transform: scale(1.1);
+}
+
+.form-row input {
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1.8px solid #74C396;
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+}
+
+.form-row input:focus {
+  border-color: #266341;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.btn-cancel {
+  background: #FFFFFF;
+  border: 1.5px solid #648C74;
+  color: #375743;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-save {
+  background: #266341;
+  border: 1.5px solid #163E28;
+  color: #FFFFFF;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* 타이머 종료 시 알림 토스트 */
+#timer-done-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #FFFDF7;
+  border: 3.5px solid #4A2810;
+  border-radius: 22px;
+  padding: 16px 22px;
+  box-shadow: 0 14px 36px rgba(45, 23, 8, 0.35);
+  z-index: 9500;
+  text-align: center;
+  animation: speechBounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.toast-title {
+  font-size: 17px;
+  font-weight: 900;
+  color: #6B3710;
+  margin-bottom: 4px;
+}
+
+.toast-desc {
+  font-size: 12.5px;
+  color: #5C3A21;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.toast-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.btn-toast-primary {
+  background: #7B3F11;
+  color: #FFF;
+  border: 2px solid #3B2314;
+  border-radius: 10px;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-toast-secondary {
+  background: #3B9E66;
+  color: #FFF;
+  border: 2px solid #1E5636;
+  border-radius: 10px;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-toast-close {
+  background: #F3E5D0;
+  color: #4A2810;
+  border: 2px solid #8A542E;
+  border-radius: 10px;
+  padding: 7px 11px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+

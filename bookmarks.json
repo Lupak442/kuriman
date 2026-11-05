@@ -1,0 +1,27 @@
+[
+  {
+    "id": "bm-1",
+    "name": "네이버 (Naver)",
+    "url": "https://www.naver.com",
+    "icon": "🌰"
+  },
+  {
+    "id": "bm-2",
+    "name": "유튜브 (YouTube)",
+    "url": "https://www.youtube.com",
+    "icon": "🍺"
+  },
+  {
+    "id": "bm-3",
+    "name": "구글 (Google)",
+    "url": "https://www.google.com",
+    "icon": "🍘"
+  },
+  {
+    "id": "bm-4",
+    "name": "깃허브 (GitHub)",
+    "url": "https://github.com",
+    "icon": "☕"
+  }
+]
+
