@@ -16,8 +16,16 @@
       <button id="btn-toggle-wander" class="hud-btn hud-btn-mode" title="쿠리만쥬 산책 켜기 / 얌전 모드 전환">🐾 산책중</button>
       <button id="btn-toggle-setup" class="hud-btn" title="타이머 설정 열기/닫기">⏱️ 설정</button>
       <button id="btn-open-bag-hud" class="hud-btn" title="쿠리만쥬 가방(북마크) 열기">🎒 가방</button>
+      <button id="btn-minimize-hud" class="hud-btn hud-btn-min" title="미니 타이틀바 화면에서 숨기기 (쿠리만쥬 더블클릭으로 다시 열기)">ㅡ</button>
       <button id="btn-quit" class="hud-btn hud-btn-danger" title="프로그램 종료">✕</button>
     </div>
+  </div>
+
+  <!-- 미니 컨트롤 바 최소화 시 나타나는 앙증맞은 초소형 플로팅 복원 칩 (선택적 표시/더블클릭 복원 지원) -->
+  <div id="mini-hud-collapsed" class="interactive-ui hidden" title="클릭하거나 쿠리만쥬를 더블클릭하면 타이틀바가 다시 열려요 (드래그 가능)">
+    <img src="assets/icon.png" class="collapsed-icon" alt="" />
+    <span id="collapsed-time" class="collapsed-time">00:00</span>
+    <span class="collapsed-hint">펼치기 🔼</span>
   </div>
 
   <!-- 타이머 설정 & 시메지 컨트롤 패널 -->
@@ -62,15 +70,20 @@
       <button id="btn-reset-timer" class="btn-outline hidden">↺ 초기화</button>
     </div>
 
-    <!-- 활동 모드 토글 (산책 vs 얌전) -->
+    <!-- 활동 모드 및 말풍선 설정 -->
     <div class="mode-control-card">
       <div class="mode-info">
-        <span class="mode-title">🐾 활동 모드 설정</span>
+        <span class="mode-title">🐾 활동 &amp; 말풍선 설정</span>
         <span id="mode-desc" class="mode-desc">현재 자유롭게 창과 화면을 돌아다닙니다.</span>
       </div>
-      <button id="btn-panel-toggle-wander" class="btn-mode-toggle active" type="button">
-        🐾 자유 산책 ON
-      </button>
+      <div class="mode-buttons-row">
+        <button id="btn-toggle-speech" class="btn-speech-toggle active" type="button" title="말풍선 대사 켜기/끄기">
+          💬 말풍선 ON
+        </button>
+        <button id="btn-panel-toggle-wander" class="btn-mode-toggle active" type="button">
+          🐾 산책 ON
+        </button>
+      </div>
     </div>
 
     <!-- 동작 즉시 테스트 & 옵션 -->
@@ -79,8 +92,9 @@
       <div class="gesture-btns">
         <button class="gesture-btn" data-action="walk">🐾 걷기</button>
         <button class="gesture-btn" data-action="idle">🧍 멍때리기</button>
+        <button class="gesture-btn" data-action="dream">😴 달콤 낮잠</button>
+        <button class="gesture-btn" data-action="sleep">🍺 윽.. 숙취</button>
         <button class="gesture-btn" data-action="land">🙇 엎드리기</button>
-        <button class="gesture-btn" data-action="sleep">💤 쿨쿨 낮잠</button>
         <button class="gesture-btn" data-action="snack">🍘 안주 먹방</button>
         <button class="gesture-btn" data-action="haa">🍺 하아ー!</button>
         <button class="gesture-btn" data-action="bag">🎒 가방 열기</button>
@@ -89,7 +103,7 @@
         <button class="gesture-btn" data-action="drop">🪂 위에서 낙하</button>
       </div>
       <div class="guide-tip">
-        💡 <b>조작 팁:</b> <b>얌전 모드</b>에서 위 버튼을 누르면 그 자세로 가만히 머뭅니다! 캐릭터를 <b>좌클릭 드래그</b>하면 미니창이나 창문 위에 얹을 수 있어요.
+        💡 <b>조작 팁:</b> 쿠리만쥬를 <b>더블클릭</b>하면 상단 타이틀바가 뿅! 나타나거나 숨겨져요. <b>좌클릭 드래그</b>로 창 위에 얹을 수 있고, <b>우클릭</b>하면 가방이 열립니다.
       </div>
     </div>
   </div>

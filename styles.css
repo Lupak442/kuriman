@@ -112,6 +112,69 @@ html, body {
   background: #FECACA;
 }
 
+.hud-btn-min {
+  background: #F0E6D8;
+  color: #5C3010;
+  padding: 4px 8px;
+  font-weight: 800;
+}
+
+.hud-btn-min:hover {
+  background: #E2D3BE;
+}
+
+/* 미니 컨트롤 바 최소화 시 나타나는 앙증맞은 초소형 플로팅 복원 칩 */
+#mini-hud-collapsed {
+  position: fixed;
+  top: 14px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 250, 238, 0.95);
+  border: 2px solid #5C3010;
+  border-radius: 999px;
+  padding: 4px 10px;
+  box-shadow: 0 4px 12px rgba(59, 35, 20, 0.22);
+  z-index: 9000;
+  cursor: grab;
+  transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s;
+}
+
+#mini-hud-collapsed:hover {
+  background: #FFEFC9;
+  box-shadow: 0 6px 16px rgba(59, 35, 20, 0.32);
+}
+
+#mini-hud-collapsed:active,
+#mini-hud-collapsed.dragging {
+  cursor: grabbing;
+}
+
+.collapsed-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+.collapsed-time {
+  font-size: 13px;
+  font-weight: 900;
+  color: #FFFFFF;
+  background: #7B3F11;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.collapsed-hint {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7A553E;
+  margin-left: 2px;
+}
+
 .hud-btn-mode {
   background: #FFE8B8;
   color: #5C3010;
@@ -151,6 +214,34 @@ html, body {
 .mode-desc {
   font-size: 11px;
   color: #7A553E;
+}
+
+.mode-buttons-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-speech-toggle {
+  background: #E8F4EC;
+  color: #1A5430;
+  border: 1.5px solid #246B3E;
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s;
+}
+
+.btn-speech-toggle:hover {
+  transform: translateY(-1px);
+}
+
+.btn-speech-toggle.off {
+  background: #F3ECE6;
+  color: #8C6A53;
+  border-color: #A68770;
 }
 
 .btn-mode-toggle {
@@ -471,8 +562,9 @@ html, body {
   filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.25));
 }
 
-/* 쿠리만쥬 머리 위 타이머 배지 */
+/* 쿠리만쥬 머리 위 타이머 배지 (유저 요청: 캐릭터 위 시간 표시 숨김) */
 .actor-timer-pill {
+  display: none !important;
   position: absolute;
   top: -22px;
   left: 50%;

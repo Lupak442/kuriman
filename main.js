@@ -222,6 +222,14 @@ function createWindow() {
         label: '🎒 가방(북마크) 열기',
         click: () => mainWindow?.webContents.send('app-command', 'open-bag')
       },
+      {
+        label: '💬 말풍선 대사 켜기/끄기',
+        click: () => mainWindow?.webContents.send('app-command', 'toggle-speech')
+      },
+      {
+        label: '🔽 상단 미니바 보이기/숨기기 (쿠리만쥬 더블클릭도 지원)',
+        click: () => mainWindow?.webContents.send('app-command', 'toggle-mini-hud')
+      },
       { type: 'separator' },
       {
         label: '❌ 종료하기',

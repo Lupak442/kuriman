@@ -50,7 +50,10 @@ window.KURIMANJU_SPRITES = {
     // 10. 타이머 종료 / 휴식 시 시그니처 「하아ー(ハーッ!)」 모션
     haa: ['assets/sprites/haa.png'],
 
-    // 11. 일시정지 / 숙취 휴식 상태
-    sleep: ['assets/sprites/sleep.png']
+    // 11. 숙취 상태
+    sleep: ['assets/sprites/sleep.png'],
+
+    // 12. 달콤한 낮잠 상태
+    dream: ['assets/sprites/dream.png']
   }
 };
