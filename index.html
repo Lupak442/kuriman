@@ -6,10 +6,10 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- 상단 우측 미니 컨트롤 바 (항상 조작 가능) -->
-  <div id="mini-hud" class="interactive-ui">
+  <!-- 상단 우측 미니 컨트롤 바 (항상 조작 가능, 드래그 이동 가능) -->
+  <div id="mini-hud" class="interactive-ui" title="드래그하여 원하는 위치로 이동할 수 있어요">
     <div class="hud-left">
-      <span class="hud-badge">🌰 쿠리만쥬 타이머</span>
+      <span class="hud-badge"><img src="assets/icon.png" class="badge-icon" alt="" /> 쿠리만쥬 타이머</span>
       <span id="hud-time-display" class="hud-time">00:00</span>
     </div>
     <div class="hud-actions">
@@ -23,7 +23,7 @@
   <div id="timer-setup-panel" class="interactive-ui">
     <div class="panel-header">
       <div class="panel-title-row">
-        <span class="panel-icon">🌰</span>
+        <span class="panel-icon"><img src="assets/icon.png" class="header-icon-img" alt="" /></span>
         <div>
           <h1>쿠리만쥬 시메지 타이머</h1>
           <p class="subtitle">타이머를 시작하면 밤만쥬 선배가 화면을 돌아다녀요!</p>

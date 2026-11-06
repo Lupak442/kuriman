@@ -4,7 +4,33 @@
   "description": "Chiikawa Kurimanju Desktop Shimeji with Timer & Bag Bookmark Launcher",
   "main": "main.js",
   "scripts": {
-    "start": "node start.js"
+    "start": "node start.js",
+    "build": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.kurimanju.shimeji",
+    "productName": "쿠리만쥬-시메지",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "portable": {
+      "artifactName": "${productName}.exe"
+    },
+    "asarUnpack": [
+      "scripts/**/*"
+    ],
+    "files": [
+      "**/*",
+      "!dist/**/*",
+      "!실행하기.bat",
+      "!exe만들기.bat"
+    ]
   },
   "keywords": [
     "chiikawa",
@@ -16,6 +42,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^33.0.0"
+    "electron": "^33.0.0",
+    "electron-builder": "^26.0.12"
   }
 }

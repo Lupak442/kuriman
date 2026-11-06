@@ -31,6 +31,18 @@ html, body {
   padding: 6px 12px 6px 14px;
   box-shadow: 0 6px 18px rgba(59, 35, 20, 0.22);
   z-index: 9000;
+  cursor: grab;
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+#mini-hud:active,
+#mini-hud.dragging {
+  cursor: grabbing;
+  box-shadow: 0 10px 24px rgba(59, 35, 20, 0.32);
+}
+
+#mini-hud button {
+  cursor: pointer;
 }
 
 .hud-left {
@@ -40,9 +52,20 @@ html, body {
 }
 
 .hud-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
   font-weight: 800;
   color: #5C3010;
+}
+
+.badge-icon {
+  width: 19px;
+  height: 19px;
+  border-radius: 4px;
+  object-fit: contain;
+  vertical-align: middle;
 }
 
 .hud-time {
@@ -120,6 +143,16 @@ html, body {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 14px;
+  cursor: grab;
+}
+
+.panel-header:active,
+.panel-header.dragging {
+  cursor: grabbing;
+}
+
+.panel-header button {
+  cursor: pointer;
 }
 
 .panel-title-row {
@@ -129,7 +162,6 @@ html, body {
 }
 
 .panel-icon {
-  font-size: 28px;
   background: #FDE8C4;
   border: 2px solid #5C3010;
   width: 44px;
@@ -138,6 +170,16 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.header-icon-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  object-fit: contain;
 }
 
 .panel-header h1 {

@@ -2,12 +2,14 @@
   const spriteConfig = window.KURIMANJU_SPRITES;
 
   // DOM Elements
+  const miniHud = document.getElementById('mini-hud');
   const hudTimeDisplay = document.getElementById('hud-time-display');
   const btnToggleSetup = document.getElementById('btn-toggle-setup');
   const btnOpenBagHud = document.getElementById('btn-open-bag-hud');
   const btnQuit = document.getElementById('btn-quit');
 
   const setupPanel = document.getElementById('timer-setup-panel');
+  const panelHeader = setupPanel?.querySelector('.panel-header');
   const btnMinimizePanel = document.getElementById('btn-Minimize-panel');
   const presetBtns = document.querySelectorAll('.preset-btn');
   const inputMinutes = document.getElementById('input-minutes');
@@ -55,7 +57,7 @@
       gain.connect(audioCtx.destination);
       osc.start(audioCtx.currentTime + delay);
       osc.stop(audioCtx.currentTime + delay + duration);
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function playPopSound() {
@@ -76,10 +78,12 @@
     playTone(1046.5, 'triangle', 0.45, 0.36, 0.18);
   }
 
-  // Click-Through Management
+  // Click-Through & Draggable UI Management
   let lastIgnoreState = false;
+  let isAnyUiDragging = false;
+
   window.addEventListener('mousemove', (e) => {
-    if (actor.isDragging) {
+    if (actor.isDragging || isAnyUiDragging) {
       if (lastIgnoreState !== false) {
         lastIgnoreState = false;
         window.electronAPI?.setIgnoreMouseEvents(false);
@@ -94,6 +98,96 @@
       window.electronAPI?.setIgnoreMouseEvents(shouldIgnore);
     }
   });
+
+  function makeDraggable(element, handleElement, storageKey) {
+    if (!element || !handleElement) return;
+
+    // 저장된 위치 복원
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const { left, top } = JSON.parse(saved);
+        const maxL = Math.max(0, window.innerWidth - (element.offsetWidth || 260));
+        const maxT = Math.max(0, window.innerHeight - (element.offsetHeight || 60));
+        element.style.left = `${Math.min(Math.max(0, left), maxL)}px`;
+        element.style.top = `${Math.min(Math.max(0, top), maxT)}px`;
+        element.style.right = 'auto';
+      }
+    } catch (_) { }
+
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let initialL = 0;
+    let initialT = 0;
+
+    handleElement.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button, input, select, textarea, a, .icon-close-btn')) return;
+      if (e.button !== 0) return;
+
+      isDragging = true;
+      isAnyUiDragging = true;
+      element.classList.add('dragging');
+      if (handleElement !== element) handleElement.classList.add('dragging');
+
+      const rect = element.getBoundingClientRect();
+      startX = e.clientX;
+      startY = e.clientY;
+      initialL = rect.left;
+      initialT = rect.top;
+
+      element.style.left = `${initialL}px`;
+      element.style.top = `${initialT}px`;
+      element.style.right = 'auto';
+
+      try {
+        handleElement.setPointerCapture(e.pointerId);
+      } catch (_) { }
+      e.stopPropagation();
+    });
+
+    handleElement.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      const maxL = Math.max(0, window.innerWidth - element.offsetWidth);
+      const maxT = Math.max(0, window.innerHeight - element.offsetHeight);
+
+      const targetL = Math.min(Math.max(0, initialL + dx), maxL);
+      const targetT = Math.min(Math.max(0, initialT + dy), maxT);
+
+      element.style.left = `${targetL}px`;
+      element.style.top = `${targetT}px`;
+      element.style.right = 'auto';
+    });
+
+    const stopDrag = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      isAnyUiDragging = false;
+      element.classList.remove('dragging');
+      if (handleElement !== element) handleElement.classList.remove('dragging');
+
+      try {
+        if (handleElement.hasPointerCapture(e.pointerId)) {
+          handleElement.releasePointerCapture(e.pointerId);
+        }
+      } catch (_) { }
+
+      try {
+        const rect = element.getBoundingClientRect();
+        localStorage.setItem(storageKey, JSON.stringify({ left: rect.left, top: rect.top }));
+      } catch (_) { }
+    };
+
+    handleElement.addEventListener('pointerup', stopDrag);
+    handleElement.addEventListener('pointercancel', stopDrag);
+  }
+
+  // 미니 HUD와 설정창 패널을 드래그 가능하게 활성화
+  makeDraggable(miniHud, miniHud, 'kurimanju_mini_hud_pos');
+  makeDraggable(setupPanel, panelHeader, 'kurimanju_setup_panel_pos');
 
   // =========================================================
   // 1. 외부 창(크롬, 카카오톡, 탐색기 등) 우선순위 감지 시스템
@@ -132,7 +226,7 @@
     if (w.width < 180 || w.height < 120) return false;
     const hasVisibleRoof = w.y >= 45 && w.y <= window.innerHeight - 100;
     const hasVisibleWall = (w.x >= 25 && w.x <= window.innerWidth - 60) ||
-                           (w.x + w.width >= 60 && w.x + w.width <= window.innerWidth - 25);
+      (w.x + w.width >= 60 && w.x + w.width <= window.innerWidth - 25);
     return hasVisibleRoof || hasVisibleWall;
   }
 
@@ -519,16 +613,19 @@
 
   function pickNextGroundBehavior() {
     const rand = Math.random();
-    if (rand < 0.50) {
+    if (rand < 0.45) {
       actor.dir = Math.random() < 0.5 ? -1 : 1;
       setActorState('walk', 180 + Math.floor(Math.random() * 200));
-    } else if (rand < 0.70) {
+    } else if (rand < 0.65) {
       setActorState('snack', 170 + Math.floor(Math.random() * 110));
       const snackLines = ['오물오물.. 🍘', '바삭바삭.. 🥜', '홀짝.. ☕', '창 위에서 먹는 안주 맛 좋구만~'];
       showSpeech(snackLines[Math.floor(Math.random() * snackLines.length)], 2400);
-    } else if (rand < 0.84) {
+    } else if (rand < 0.80) {
       setActorState('haa', 130);
       showSpeech('하아ー(ハーッ)!! 🍺', 2200);
+    } else if (rand < 0.88) {
+      setActorState('sleep', 180 + Math.floor(Math.random() * 120));
+      showSpeech('으윽.. 숙취... 💤', 2500);
     } else {
       setActorState('idle', 100 + Math.floor(Math.random() * 90));
     }
@@ -621,23 +718,23 @@
         if (actor.surfaceType === 'win-roof' && attachedWin) {
           // [창 지붕 위를 걷는 중]
           if (actor.x <= minWalkX || actor.x >= maxWalkX) {
-            // 창 지붕 끝에 도달했을 때: 반대로 돌거나(65%), 창 옆벽을 타고 내려가거나(20%), 아래로 폴짝 뛰어내림(15%)
+            // 창 지붕 끝에 도달했을 때: 반대로 돌거나(40%), 아래로 폴짝 뛰어내리거나(40%), 창 옆벽을 타고 내려감(20%)
             const r = Math.random();
-            if (r < 0.65) {
+            if (r < 0.40) {
               actor.dir = actor.x <= minWalkX ? 1 : -1;
               actor.x = Math.max(minWalkX, Math.min(maxWalkX, actor.x));
-            } else if (r < 0.85) {
+            } else if (r < 0.80) {
+              attachToWindow(null, 'screen');
+              actor.vx = (actor.x <= minWalkX ? -1 : 1) * 2.8;
+              actor.vy = -2.5;
+              setActorState('fall');
+              showSpeech('지붕에서 폴짝 뛰어내리기! 🪂', 2000);
+            } else {
               actor.wallSide = actor.x <= minWalkX ? 'left' : 'right';
               actor.surfaceType = 'win-wall';
               actor.climbDir = 1; // 아래로 내려감
-              setActorState('climb', 220);
+              setActorState('climb', 9999);
               showSpeech(`${getFriendlyAppName(attachedWin)} 벽 타고 내려가자~`, 2000);
-            } else {
-              attachToWindow(null, 'screen');
-              actor.vx = actor.dir * 2.2;
-              actor.vy = -2.5;
-              setActorState('fall');
-              showSpeech('폴짝~! 뛰어내리기! 🪂', 1800);
             }
           } else if (actor.stateTimer <= 0) {
             pickNextGroundBehavior();
@@ -703,79 +800,78 @@
           }
         }
       } else if (actor.state === 'climb') {
-        const climbSpeed = 1.65;
+        const climbSpeed = 2.4;
 
         if (actor.surfaceType === 'win-wall' && attachedWin) {
           // [크롬/카톡/탐색기 창의 좌우 옆벽을 타고 오르내리는 중]
           const targetWallX = actor.wallSide === 'left'
-            ? attachedWin.x - Math.floor(actor.width * 0.45)
-            : attachedWin.x + attachedWin.width - Math.floor(actor.width * 0.55);
+            ? attachedWin.x - Math.floor(actor.width * 0.42)
+            : attachedWin.x + attachedWin.width - Math.floor(actor.width * 0.58);
           actor.x = Math.max(0, Math.min(maxX, targetWallX));
           actor.y += actor.climbDir * climbSpeed;
-          actor.stateTimer--;
 
           const roofY = Math.max(0, attachedWin.y - actor.height + FOOT_OFFSET);
           const bottomY = Math.min(screenGroundY, attachedWin.y + attachedWin.height - actor.height);
 
-          if (actor.climbDir < 0 && actor.y <= roofY) {
-            // 창 꼭대기(지붕) 등반 완료! 지붕 위를 걸어다님
-            actor.y = roofY;
-            actor.surfaceType = 'win-roof';
-            actor.dir = actor.wallSide === 'left' ? 1 : -1;
-            actor.x = Math.max(0, Math.min(maxX, actor.wallSide === 'left' ? attachedWin.x + 10 : attachedWin.x + attachedWin.width - actor.width - 10));
-            setActorState('walk', 200);
-            showSpeech(`${getFriendlyAppName(attachedWin)} 꼭대기 도착! 🌰`, 2200);
-          } else if (actor.climbDir > 0 && actor.y >= bottomY) {
-            // 창 아래까지 다 내려옴
-            attachToWindow(null, 'screen');
-            if (actor.y < screenGroundY - 8) {
-              setActorState('fall');
-            } else {
-              actor.y = screenGroundY;
-              setActorState('walk', 180);
+          if (actor.climbDir < 0) {
+            // [위로 등반 중]: 중간에 멈추거나 유턴하지 않고 꼭대기까지 끝까지 올라가서 100% 지붕 안착!
+            if (actor.y <= roofY + 6) {
+              actor.y = roofY;
+              actor.surfaceType = 'win-roof';
+              actor.dir = actor.wallSide === 'left' ? 1 : -1;
+              const safeRoofX = actor.wallSide === 'left'
+                ? Math.min(maxX, attachedWin.x + 18)
+                : Math.max(0, attachedWin.x + attachedWin.width - actor.width - 18);
+              actor.x = safeRoofX;
+              setActorState('land', 20);
+              showSpeech(`${getFriendlyAppName(attachedWin)} 꼭대기 정복! 🌰`, 2400);
             }
-          } else if (actor.stateTimer <= 0) {
-            actor.climbDir = -actor.climbDir;
-            actor.stateTimer = 180;
+          } else {
+            // [아래로 내려가는 중]: 창문 바닥에 닿으면 작업표시줄로 착지하거나 뛰어내림
+            if (actor.y >= bottomY - 6) {
+              attachToWindow(null, 'screen');
+              if (actor.y < screenGroundY - 25) {
+                actor.vx = (actor.wallSide === 'left' ? -1 : 1) * 2.2;
+                actor.vy = 1;
+                setActorState('fall');
+                showSpeech('폴짝 뛰어내리기! 🪂', 1800);
+              } else {
+                actor.y = screenGroundY;
+                actor.dir = actor.wallSide === 'left' ? -1 : 1;
+                setActorState('walk', 200);
+              }
+            }
           }
         } else {
           // [모니터 좌/우 끝 벽을 타고 오르내리는 중]
           actor.x = actor.wallSide === 'left' ? 0 : maxX;
           actor.y += actor.climbDir * climbSpeed;
-          actor.stateTimer--;
 
-          if (actor.y <= 8) {
-            actor.y = 8;
-            const r = Math.random();
-            // 만약 현재 맨 앞 창이 풀창(최대화)이면 상단 크롬 탭을 오래 가리지 않게 짧게만 매달리거나 바로 내려옴!
-            const anyMaximizedFg = trackedWindows.some((w) => w.isForeground && w.isMaximized);
-            if (r < 0.55) {
-              actor.dir = actor.wallSide === 'left' ? 1 : -1;
-              setActorState('ceiling', anyMaximizedFg ? 90 : 200);
-              showSpeech('천장 산책 중~ 🌰', 1800);
-            } else if (r < 0.8) {
-              actor.climbDir = 1;
-              setActorState('climb', 260);
-              showSpeech('조심조심 내려가자~', 1800);
-            } else {
-              actor.vx = actor.wallSide === 'left' ? 2.5 : -2.5;
-              actor.vy = 1;
-              setActorState('fall');
-              showSpeech('슈웅 떨어진다~! 🪂', 1800);
+          if (actor.climbDir < 0) {
+            // 위로 끝까지 올라갔을 때 (모니터 상단)
+            if (actor.y <= 10) {
+              actor.y = 8;
+              const r = Math.random();
+              const anyMaximizedFg = trackedWindows.some((w) => w.isForeground && w.isMaximized);
+              // 70% 확률로 천장 타기, 30% 확률로 다이빙 낙하
+              if (r < 0.70) {
+                actor.dir = actor.wallSide === 'left' ? 1 : -1;
+                setActorState('ceiling', anyMaximizedFg ? 120 : 260);
+                showSpeech('천장 산책 중~ 🌰', 2000);
+              } else {
+                actor.vx = actor.wallSide === 'left' ? 3.0 : -3.0;
+                actor.vy = 0.5;
+                setActorState('fall');
+                showSpeech('슈웅 다이빙~! 🪂', 2000);
+              }
             }
-          } else if (actor.y >= screenGroundY) {
-            actor.y = screenGroundY;
-            actor.dir = actor.wallSide === 'left' ? 1 : -1;
-            setActorState('walk', 180);
-          } else if (actor.stateTimer <= 0) {
-            if (Math.random() < 0.5) {
-              actor.climbDir = 1;
-              actor.stateTimer = 220;
-            } else {
-              actor.vx = actor.wallSide === 'left' ? 2.2 : -2.2;
-              actor.vy = 0;
-              setActorState('fall');
-              showSpeech('아이쿠 미끄러졌다! 💦', 1800);
+          } else {
+            // 아래로 내려와 바닥에 닿았을 때
+            if (actor.y >= screenGroundY) {
+              actor.y = screenGroundY;
+              actor.dir = actor.wallSide === 'left' ? 1 : -1;
+              setActorState('walk', 200);
+              showSpeech('바닥 도착! 총총~', 1800);
             }
           }
         }
@@ -899,12 +995,13 @@
       // 1순위: 사용자가 마우스로 놓은 위치 근처에 일반 창(크롬/카톡/탐색기 등)의 지붕이나 옆벽이 있는지 확인!
       for (const w of trackedWindows) {
         if (!isClimbableWindow(w)) continue;
-        // 창 지붕 근처에 놓았을 때
-        if (w.y >= 45 && centerX >= w.x && centerX <= w.x + w.width && Math.abs(footY - w.y) <= 45) {
+        // 창 지붕 근처에 놓았을 때 (타이틀바 상하 65px 범위)
+        if (w.y >= 30 && centerX >= w.x - 20 && centerX <= w.x + w.width + 20 && Math.abs(footY - w.y) <= 65) {
           attachToWindow(w, 'win-roof');
           actor.y = w.y - actor.height + FOOT_OFFSET;
+          actor.x = Math.max(w.x + 10, Math.min(w.x + w.width - actor.width - 10, actor.x));
           setActorState('land', 20);
-          showSpeech(`${getFriendlyAppName(w)} 지붕에 착! 🌰`, 2200);
+          showSpeech(`${getFriendlyAppName(w)} 지붕에 착! 🌰`, 2400);
           return;
         }
         // 창 왼쪽/오른쪽 벽 근처에 놓았을 때
@@ -1200,7 +1297,7 @@
     if (isTimerPaused) {
       btnPauseTimer.textContent = '▶ 계속하기';
       setActorState('sleep', 9999);
-      showSpeech('잠시 쉬는 시간.. 쿨쿨 💤', 0);
+      showSpeech('잠시 쉬는 시간.. 으윽.. 💤', 0);
     } else {
       btnPauseTimer.textContent = '⏸ 일시정지';
       pickNextGroundBehavior();

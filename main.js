@@ -49,6 +49,10 @@ function writeBookmarks(bookmarks) {
 }
 
 function createTrayIcon() {
+  const iconPath = path.join(__dirname, 'assets', 'icon.png');
+  if (fs.existsSync(iconPath)) {
+    return nativeImage.createFromPath(iconPath).resize({ width: 24, height: 24 });
+  }
   const svgIcon = `
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
       <circle cx="16" cy="17" r="12" fill="#FFF7DF" stroke="#3B2314" stroke-width="2.5"/>
@@ -62,7 +66,10 @@ function createTrayIcon() {
 }
 
 function startWindowTracker() {
-  const scriptPath = path.join(__dirname, 'scripts', 'window-tracker.ps1');
+  let scriptPath = path.join(__dirname, 'scripts', 'window-tracker.ps1');
+  if (app.isPackaged) {
+    scriptPath = scriptPath.replace('app.asar', 'app.asar.unpacked');
+  }
   if (!fs.existsSync(scriptPath)) return;
 
   trackerProc = spawn('powershell.exe', [
@@ -124,12 +131,14 @@ function startWindowTracker() {
 function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
   const workArea = primaryDisplay.workArea;
+  const appIcon = path.join(__dirname, 'assets', 'icon.png');
 
   mainWindow = new BrowserWindow({
     x: workArea.x,
     y: workArea.y,
     width: workArea.width,
     height: workArea.height,
+    icon: fs.existsSync(appIcon) ? appIcon : undefined,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
