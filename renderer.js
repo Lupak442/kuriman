@@ -3,6 +3,7 @@
 
   // DOM Elements
   const miniHud = document.getElementById('mini-hud');
+  const btnToggleWander = document.getElementById('btn-toggle-wander');
   const hudTimeDisplay = document.getElementById('hud-time-display');
   const btnToggleSetup = document.getElementById('btn-toggle-setup');
   const btnOpenBagHud = document.getElementById('btn-open-bag-hud');
@@ -11,6 +12,8 @@
   const setupPanel = document.getElementById('timer-setup-panel');
   const panelHeader = setupPanel?.querySelector('.panel-header');
   const btnMinimizePanel = document.getElementById('btn-Minimize-panel');
+  const btnPanelToggleWander = document.getElementById('btn-panel-toggle-wander');
+  const modeDesc = document.getElementById('mode-desc');
   const presetBtns = document.querySelectorAll('.preset-btn');
   const inputMinutes = document.getElementById('input-minutes');
   const inputSeconds = document.getElementById('input-seconds');
@@ -157,9 +160,24 @@
       const targetL = Math.min(Math.max(0, initialL + dx), maxL);
       const targetT = Math.min(Math.max(0, initialT + dy), maxT);
 
+      const parsedL = parseFloat(element.style.left);
+      const parsedT = parseFloat(element.style.top);
+      const prevL = !Number.isNaN(parsedL) ? parsedL : initialL;
+      const prevT = !Number.isNaN(parsedT) ? parsedT : initialT;
+      const deltaL = targetL - prevL;
+      const deltaT = targetT - prevT;
+
       element.style.left = `${targetL}px`;
       element.style.top = `${targetT}px`;
       element.style.right = 'auto';
+
+      // 쿠리만쥬가 미니창 위에 올라타 있으면 미니창 이동 시 함께 이동!
+      if (element === miniHud && actor.surfaceType === 'mini-hud' && !actor.isDragging) {
+        actor.x += deltaL;
+        actor.y += deltaT;
+        // 미니창 영역 안쪽으로 안전하게 위치 유지
+        actor.x = Math.max(targetL - 10, Math.min(targetL + element.offsetWidth - actor.width + 10, actor.x));
+      }
     });
 
     const stopDrag = (e) => {
@@ -314,6 +332,7 @@
 
   // 발바닥이 지붕(타이틀바)에 자연스럽게 닿도록 하는 오프셋
   const FOOT_OFFSET = 12;
+  let miniHudJumpCooldown = 0; // 미니창에서 뛰어내렸을 때 즉시 재착지 방지 쿨다운
 
   function getAttachedWindow() {
     if (!actor.attachedHwnd) return null;
@@ -323,13 +342,126 @@
   function attachToWindow(win, surfaceType) {
     if (!win) {
       actor.attachedHwnd = null;
-      actor.surfaceType = 'screen';
+      actor.surfaceType = surfaceType || 'screen';
       actor.lastWinPos = null;
       return;
     }
     actor.attachedHwnd = win.hwnd;
     actor.surfaceType = surfaceType;
     actor.lastWinPos = { x: win.x, y: win.y, width: win.width, height: win.height };
+  }
+
+  // =========================================================
+  // 활동 모드 관리 (자유 산책 vs 얌전 모드 & 자세 고정)
+  // =========================================================
+  let isWanderEnabled = true;
+  try {
+    const saved = localStorage.getItem('kurimanju_wander_enabled');
+    if (saved !== null) isWanderEnabled = JSON.parse(saved);
+  } catch (_) {}
+
+  let lockedPose = null; // null: 자동 스토리 순환, string: 특정 자세로 고정 유지 ("너 이 동작으로 가만히 있어")
+  let calmRoutine = 1;   // 1: 일과 스토리, 2: 심심 루틴
+  let calmStep = 0;
+  let calmTimer = 300;   // 약 5초 (60fps 기준 300프레임)
+
+  // 1. 일과 스토리: idle(5초) -> bag(5초) -> snack(5초) -> haa(5초) -> sleep(5초)
+  const CALM_STORY_STEPS = [
+    { state: 'idle', duration: 300, speech: '주인 일하네? 👀' },
+    { state: 'bag', duration: 300, speech: '나도 일해야지~ 🎒' },
+    { state: 'snack', duration: 300, speech: '나는 술 자격증 보유자 🍶' },
+    { state: 'haa', duration: 300, speech: '크아아ー!! 🍺' },
+    { state: 'sleep', duration: 300, speech: '윽.. 숙취~~ 💤' }
+  ];
+
+  // 2. 심심 루틴: idle 상태에서 다양한 대사로 심심해함 (land 모션 제외)
+  const CALM_BORED_STEPS = [
+    { state: 'idle', duration: 300, speech: '나 돌아다닐래~ 🥺' },
+    { state: 'idle', duration: 300, speech: '심심해.. 옮겨줘~~' },
+    { state: 'idle', duration: 300, speech: '딴짓 안 하고 열일 중이네.. 🌰' },
+    { state: 'idle', duration: 300, speech: '지켜보는 중 👀' }
+  ];
+
+  function runCalmTick() {
+    if (actor.isDragging || actor.state === 'fall' || actor.state === 'grabbed') return;
+
+    // 만약 사용자가 특정 자세로 고정해 둔 경우 ("너 이 동작으로 가만히 있어")
+    if (lockedPose) {
+      if (actor.state !== lockedPose) {
+        setActorState(lockedPose, 9999);
+      }
+      return;
+    }
+
+    calmTimer--;
+    if (calmTimer <= 0) {
+      if (calmRoutine === 1) {
+        calmStep++;
+        if (calmStep >= CALM_STORY_STEPS.length) {
+          calmRoutine = 2;
+          calmStep = 0;
+        }
+      } else {
+        calmStep++;
+        if (calmStep >= CALM_BORED_STEPS.length) {
+          calmRoutine = 1;
+          calmStep = 0;
+        }
+      }
+
+      const stepList = calmRoutine === 1 ? CALM_STORY_STEPS : CALM_BORED_STEPS;
+      const current = stepList[calmStep];
+      setActorState(current.state, current.duration);
+      calmTimer = current.duration;
+      if (current.speech) showSpeech(current.speech, 2200);
+    }
+  }
+
+  function setWanderMode(enabled, notify = true) {
+    isWanderEnabled = Boolean(enabled);
+    lockedPose = null;
+    try {
+      localStorage.setItem('kurimanju_wander_enabled', JSON.stringify(isWanderEnabled));
+    } catch (_) {}
+
+    updateWanderModeUI();
+
+    if (isWanderEnabled) {
+      if (notify) showSpeech('자유 산책 시작~! 🐾', 2000);
+      pickNextGroundBehavior();
+    } else {
+      calmRoutine = 1;
+      calmStep = 0;
+      const initial = CALM_STORY_STEPS[0];
+      setActorState(initial.state, initial.duration);
+      calmTimer = initial.duration;
+      if (notify) showSpeech(initial.speech, 2200);
+    }
+  }
+
+  function updateWanderModeUI() {
+    if (btnToggleWander) {
+      if (isWanderEnabled) {
+        btnToggleWander.textContent = '🐾 산책중';
+        btnToggleWander.classList.remove('calm');
+        btnToggleWander.title = '클릭하면 얌전 모드로 전환합니다';
+      } else {
+        btnToggleWander.textContent = '🪑 얌전모드';
+        btnToggleWander.classList.add('calm');
+        btnToggleWander.title = '클릭하면 자유 산책을 시작합니다';
+      }
+    }
+    if (btnPanelToggleWander && modeDesc) {
+      if (isWanderEnabled) {
+        btnPanelToggleWander.textContent = '🐾 자유 산책 ON';
+        btnPanelToggleWander.classList.remove('calm');
+        modeDesc.textContent = '현재 자유롭게 창과 화면을 돌아다닙니다.';
+      } else {
+        btnPanelToggleWander.textContent = '🪑 얌전 모드 ON';
+        btnPanelToggleWander.classList.add('calm');
+        modeDesc.textContent = '이동을 멈추고 제자리에서 얌전히 행동합니다.';
+      }
+    }
   }
 
   function showSpeech(text, durationMs = 2600) {
@@ -637,21 +769,37 @@
       const maxX = window.innerWidth - actor.width;
       const attachedWin = getAttachedWindow();
 
-      // 현재 바닥 높이와 좌우 이동 한계 계산 (창 지붕 위 vs 바탕화면 바닥)
+      // 현재 바닥 높이와 좌우 이동 한계 계산 (미니창 위 vs 창 지붕 위 vs 바탕화면 바닥)
       let currentFloorY = screenGroundY;
       let minWalkX = 0;
       let maxWalkX = maxX;
 
-      if (actor.surfaceType === 'win-roof' && attachedWin) {
+      if (actor.surfaceType === 'mini-hud') {
+        const hudRect = miniHud ? miniHud.getBoundingClientRect() : null;
+        if (hudRect) {
+          currentFloorY = Math.max(0, hudRect.top - actor.height + FOOT_OFFSET + 2);
+          minWalkX = Math.max(0, hudRect.left - Math.floor(actor.width * 0.20));
+          maxWalkX = Math.min(maxX, hudRect.right - Math.floor(actor.width * 0.80));
+          if (!actor.isDragging && !isWanderEnabled) {
+            // 얌전 모드일 때 미니창 안쪽으로 안정적인 위치 유지
+            actor.x = Math.max(minWalkX, Math.min(maxWalkX, actor.x));
+          }
+        }
+      } else if (actor.surfaceType === 'win-roof' && attachedWin) {
         currentFloorY = Math.max(0, attachedWin.y - actor.height + FOOT_OFFSET);
         minWalkX = Math.max(0, attachedWin.x - Math.floor(actor.width * 0.35));
         maxWalkX = Math.min(maxX, attachedWin.x + attachedWin.width - Math.floor(actor.width * 0.65));
       }
 
+      // 마우스 드래그 틸트(기울기) 복원
       if (actor.isDragging) {
         actor.tiltDeg *= 0.85;
-      } else if (actor.state === 'bag' || actor.state === 'sleep') {
+      } else {
         actor.tiltDeg = 0;
+      }
+
+      if (actor.isDragging) {
+        // 드래그 중에는 마우스 위치 추종
       } else if (actor.state === 'fall') {
         const prevFootY = actor.y + actor.height - FOOT_OFFSET;
         actor.vy = Math.min(actor.vy + 0.55, 16);
@@ -660,6 +808,26 @@
         actor.vx *= 0.98;
         const newFootY = actor.y + actor.height - FOOT_OFFSET;
         const centerX = actor.x + actor.width * 0.5;
+
+        if (miniHudJumpCooldown > 0) {
+          miniHudJumpCooldown--;
+        }
+
+        // 0) 낙하 도중 상단 미니창(HUD 타이틀바)에 착지하는지 체크! (쿨다운 중에는 즉시 재착지 방지)
+        const hudRect = miniHud ? miniHud.getBoundingClientRect() : null;
+        if (hudRect && hudRect.width > 50 && miniHudJumpCooldown <= 0) {
+          const withinHudX = centerX >= hudRect.left - 15 && centerX <= hudRect.right + 15;
+          const crossedHudRoof = prevFootY <= hudRect.top + 16 && newFootY >= hudRect.top - 6 && actor.vy >= 0;
+          if (withinHudX && crossedHudRoof) {
+            attachToWindow(null, 'mini-hud');
+            actor.y = hudRect.top - actor.height + FOOT_OFFSET + 2;
+            actor.vx = 0;
+            actor.vy = 0;
+            setActorState(isWanderEnabled ? 'land' : 'idle', 20);
+            showSpeech('미니창 위에 착지! 🌰', 2000);
+            return requestAnimationFrame(updatePhysics);
+          }
+        }
 
         // 1) 낙하 도중 우선순위 창(크롬/카톡/탐색기 등)의 지붕(상단 테두리)에 착지하는지 체크!
         let landedOnWin = null;
@@ -682,7 +850,7 @@
           actor.y = landedOnWin.y - actor.height + FOOT_OFFSET;
           actor.vx = 0;
           actor.vy = 0;
-          setActorState('land', 22);
+          setActorState(isWanderEnabled ? 'land' : 'idle', 22);
           showSpeech(`${getFriendlyAppName(landedOnWin)} 위에 착지! 🌰`, 2200);
         } else {
           // 화면 좌우 벽 반사
@@ -700,9 +868,15 @@
             actor.y = screenGroundY;
             actor.vx = 0;
             actor.vy = 0;
-            setActorState('land', 24);
+            setActorState(isWanderEnabled ? 'land' : 'idle', 24);
           }
         }
+      } else if (!isWanderEnabled) {
+        // [비활성화 / 얌전 모드]: 제자리에서 가만히 머물며 스토리/심심 루틴 또는 잠금 자세 유지
+        actor.y = currentFloorY;
+        actor.vx = 0;
+        actor.vy = 0;
+        runCalmTick();
       } else if (actor.state === 'land') {
         actor.y = currentFloorY;
         actor.stateTimer--;
@@ -715,26 +889,49 @@
         actor.y = currentFloorY;
         actor.stateTimer--;
 
-        if (actor.surfaceType === 'win-roof' && attachedWin) {
-          // [창 지붕 위를 걷는 중]
+        if (actor.surfaceType === 'mini-hud') {
+          // [미니창 상단 타이틀바 위를 걷는 중]
           if (actor.x <= minWalkX || actor.x >= maxWalkX) {
-            // 창 지붕 끝에 도달했을 때: 반대로 돌거나(40%), 아래로 폴짝 뛰어내리거나(40%), 창 옆벽을 타고 내려감(20%)
             const r = Math.random();
-            if (r < 0.40) {
+            // 미니창 끝에서는 75% 확률로 아래로 시원하게 뛰어내림! 25% 반대로 회전
+            if (r < 0.75) {
+              const hudRect = miniHud ? miniHud.getBoundingClientRect() : null;
+              miniHudJumpCooldown = 100;
+              attachToWindow(null, 'screen');
+              actor.vx = (actor.x <= minWalkX ? -1 : 1) * 3.5;
+              actor.vy = 2.2;
+              if (hudRect) {
+                actor.y = hudRect.bottom + 4;
+              }
+              setActorState('fall');
+              showSpeech('미니창에서 폴짝~! 🪂', 1800);
+            } else {
               actor.dir = actor.x <= minWalkX ? 1 : -1;
               actor.x = Math.max(minWalkX, Math.min(maxWalkX, actor.x));
-            } else if (r < 0.80) {
+            }
+          } else if (actor.stateTimer <= 0) {
+            pickNextGroundBehavior();
+          }
+        } else if (actor.surfaceType === 'win-roof' && attachedWin) {
+          // [창 지붕 위를 걷는 중]
+          if (actor.x <= minWalkX || actor.x >= maxWalkX) {
+            // 창 지붕 끝에 도달했을 때: 65% 확률로 아래로 폴짝 다이빙 낙하! 20% 벽 타고 내려감, 15% 반대로 회전
+            const r = Math.random();
+            if (r < 0.65) {
               attachToWindow(null, 'screen');
-              actor.vx = (actor.x <= minWalkX ? -1 : 1) * 2.8;
-              actor.vy = -2.5;
+              actor.vx = (actor.x <= minWalkX ? -1 : 1) * 3.2;
+              actor.vy = -2.6;
               setActorState('fall');
-              showSpeech('지붕에서 폴짝 뛰어내리기! 🪂', 2000);
-            } else {
+              showSpeech('지붕 끝에서 폴짝 뛰어내리기! 🪂', 2000);
+            } else if (r < 0.85) {
               actor.wallSide = actor.x <= minWalkX ? 'left' : 'right';
               actor.surfaceType = 'win-wall';
               actor.climbDir = 1; // 아래로 내려감
               setActorState('climb', 9999);
               showSpeech(`${getFriendlyAppName(attachedWin)} 벽 타고 내려가자~`, 2000);
+            } else {
+              actor.dir = actor.x <= minWalkX ? 1 : -1;
+              actor.x = Math.max(minWalkX, Math.min(maxWalkX, actor.x));
             }
           } else if (actor.stateTimer <= 0) {
             pickNextGroundBehavior();
@@ -905,6 +1102,12 @@
         }
       }
 
+      // 화면 밖 탈출 방지 절대 안전 클램핑 (사라짐 원천 차단)
+      if (!actor.isDragging) {
+        actor.x = Math.max(0, Math.min(maxX, actor.x));
+        actor.y = Math.max(0, Math.min(screenGroundY, actor.y));
+      }
+
       actorEl.style.left = `${Math.round(actor.x)}px`;
       actorEl.style.top = `${Math.round(actor.y)}px`;
 
@@ -992,6 +1195,17 @@
       const footY = actor.y + actor.height - FOOT_OFFSET;
       const centerX = actor.x + actor.width * 0.5;
 
+      // 0순위: 사용자가 미니창(상단 타이틀바) 위에 놓았을 때!
+      const hudRect = miniHud ? miniHud.getBoundingClientRect() : null;
+      if (hudRect && centerX >= hudRect.left - 25 && centerX <= hudRect.right + 25 && Math.abs(footY - hudRect.top) <= 60) {
+        attachToWindow(null, 'mini-hud');
+        actor.y = hudRect.top - actor.height + FOOT_OFFSET + 2;
+        actor.x = Math.max(hudRect.left, Math.min(hudRect.right - actor.width, actor.x));
+        setActorState(isWanderEnabled ? 'land' : 'idle', 20);
+        showSpeech('미니창 위에 착! 🌰', 2200);
+        return;
+      }
+
       // 1순위: 사용자가 마우스로 놓은 위치 근처에 일반 창(크롬/카톡/탐색기 등)의 지붕이나 옆벽이 있는지 확인!
       for (const w of trackedWindows) {
         if (!isClimbableWindow(w)) continue;
@@ -1000,7 +1214,7 @@
           attachToWindow(w, 'win-roof');
           actor.y = w.y - actor.height + FOOT_OFFSET;
           actor.x = Math.max(w.x + 10, Math.min(w.x + w.width - actor.width - 10, actor.x));
-          setActorState('land', 20);
+          setActorState(isWanderEnabled ? 'land' : 'idle', 20);
           showSpeech(`${getFriendlyAppName(w)} 지붕에 착! 🌰`, 2400);
           return;
         }
@@ -1326,7 +1540,46 @@
     }
   }
 
-  function onTimerCompleted() {
+  async function positionDoneToast() {
+    try {
+      const displays = (await window.electronAPI?.getDisplays?.()) || [];
+      if (!displays || displays.length === 0) {
+        timerDoneToast.style.left = '50%';
+        timerDoneToast.style.top = 'auto';
+        timerDoneToast.style.bottom = '28px';
+        timerDoneToast.style.transform = 'translateX(-50%)';
+        return;
+      }
+
+      const actorCenterX = actor.x + actor.width * 0.5;
+      const actorCenterY = actor.y + actor.height * 0.5;
+
+      // 쿠리만쥬가 현재 위치한 모니터 디스플레이 찾기
+      let targetDisplay = displays.find((d) =>
+        actorCenterX >= d.x && actorCenterX <= d.x + d.width &&
+        actorCenterY >= d.y && actorCenterY <= d.y + d.height
+      );
+
+      if (!targetDisplay) {
+        targetDisplay = displays.find((d) => actorCenterX >= d.x && actorCenterX <= d.x + d.width) || displays[0];
+      }
+
+      const displayCenterX = targetDisplay.x + Math.round(targetDisplay.width * 0.5);
+      const displayBottomY = targetDisplay.y + targetDisplay.height - 32;
+
+      timerDoneToast.style.left = `${displayCenterX}px`;
+      timerDoneToast.style.top = `${displayBottomY}px`;
+      timerDoneToast.style.bottom = 'auto';
+      timerDoneToast.style.transform = 'translate(-50%, -100%)';
+    } catch (_) {
+      timerDoneToast.style.left = '50%';
+      timerDoneToast.style.top = 'auto';
+      timerDoneToast.style.bottom = '28px';
+      timerDoneToast.style.transform = 'translateX(-50%)';
+    }
+  }
+
+  async function onTimerCompleted() {
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = null;
     isTimerRunning = false;
@@ -1340,6 +1593,7 @@
     showSpeech('하아ー(ハーッ)!! 수고했어!! 🍺✨', 8000);
     playHaaFanfare();
 
+    await positionDoneToast();
     timerDoneToast.classList.remove('hidden');
   }
 
@@ -1376,7 +1630,7 @@
   });
 
   // =========================================================
-  // 6. 테스트용 제스처 즉시 실행 버튼들
+  // 6. 테스트용 제스처 즉시 실행 & 자세 지정 버튼들
   // =========================================================
   gestureBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -1387,6 +1641,30 @@
       const groundY = window.innerHeight - actor.height - 6;
       const maxX = window.innerWidth - actor.width;
 
+      if (!isWanderEnabled && action !== 'drop') {
+        // [비활성화 / 얌전 모드일 때]:
+        // 선택한 동작으로 자세를 고정하여 가만히 유지! ("너 이 동작으로 가만히 있어")
+        const poseMap = {
+          sleep: { state: 'sleep', speech: '쿨쿨.. 낮잠 자는 중 💤' },
+          land: { state: 'land', speech: '납작하게 엎드려 있는 중~ 🙇' },
+          idle: { state: 'idle', speech: '얌전히 멍때리는 중 👀' },
+          snack: { state: 'snack', speech: '오물오물.. 안주 먹는 중 🍘' },
+          haa: { state: 'haa', speech: '하아ー(ハーッ)!! 🍺' },
+          bag: { state: 'bag', speech: '가방 뒤적뒤적.. 🎒' },
+          walk: { state: 'idle', speech: '얌전 모드라 제자리 대기 중! 🐾' },
+          'climb-up': { state: 'climb', speech: '벽에 찰싹 붙어있기! 🧗' },
+          'climb-down': { state: 'climb', speech: '벽에 찰싹 붙어있기! 🧗' },
+          ceiling: { state: 'ceiling', speech: '천장에 대롱대롱 매달리기! 🦇' }
+        };
+
+        const targetPose = poseMap[action] || { state: action, speech: '이 자세로 가만히 있을게! 🌰' };
+        lockedPose = targetPose.state;
+        setActorState(targetPose.state, 9999);
+        showSpeech(targetPose.speech, 2400);
+        return;
+      }
+
+      // [자유 산책 모드일 때 즉시 제스처 실행]
       if (action === 'walk') {
         // 만약 창 모드로 떠 있는 우선순위 창이 있으면 그 창 지붕 위로, 아니면 바닥으로!
         if (priorityWindow && priorityWindow.y >= 45) {
@@ -1403,6 +1681,15 @@
           setActorState('walk', 260);
           showSpeech('바닥 총총 산책 중 🐾', 2000);
         }
+      } else if (action === 'sleep') {
+        setActorState('sleep', 260);
+        showSpeech('쿨쿨.. 낮잠 타임 💤', 2400);
+      } else if (action === 'land') {
+        setActorState('land', 240);
+        showSpeech('납작하게 엎드리기~ 🙇', 2200);
+      } else if (action === 'idle') {
+        setActorState('idle', 220);
+        showSpeech('물끄러미 바라보기.. 👀', 2000);
       } else if (action === 'climb-up') {
         if (priorityWindow && isClimbableWindow(priorityWindow)) {
           attachToWindow(priorityWindow, 'win-wall');
@@ -1457,9 +1744,18 @@
     });
   });
 
+  btnToggleWander?.addEventListener('click', () => {
+    setWanderMode(!isWanderEnabled);
+  });
+  btnPanelToggleWander?.addEventListener('click', () => {
+    setWanderMode(!isWanderEnabled);
+  });
+
   window.electronAPI?.onCommand((cmd) => {
     if (cmd === 'toggle-timer-panel') {
       setupPanel.classList.toggle('hidden');
+    } else if (cmd === 'toggle-wander-mode') {
+      setWanderMode(!isWanderEnabled);
     } else if (cmd === 'respawn-kurimanju') {
       spawnKurimanju(true);
     } else if (cmd === 'trigger-haa') {
@@ -1475,4 +1771,5 @@
   initSpritesAndAutoAlign();
   loadBookmarks();
   updateTimerDisplays();
+  updateWanderModeUI();
 })();

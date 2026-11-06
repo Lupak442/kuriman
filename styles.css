@@ -112,6 +112,68 @@ html, body {
   background: #FECACA;
 }
 
+.hud-btn-mode {
+  background: #FFE8B8;
+  color: #5C3010;
+  font-weight: 800;
+  transition: all 0.15s ease;
+}
+
+.hud-btn-mode.calm {
+  background: #E8F4EC;
+  border-color: #246B3E;
+  color: #1A5430;
+}
+
+.mode-control-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFF8EA;
+  border: 1.8px dashed #D2A679;
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.mode-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mode-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #4A2810;
+}
+
+.mode-desc {
+  font-size: 11px;
+  color: #7A553E;
+}
+
+.btn-mode-toggle {
+  background: #7B3F11;
+  color: #FFF;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s;
+}
+
+.btn-mode-toggle:hover {
+  background: #5C3010;
+  transform: translateY(-1px);
+}
+
+.btn-mode-toggle.calm {
+  background: #246B3E;
+}
+
 /* 타이머 설정 메인 패널 */
 #timer-setup-panel {
   position: fixed;

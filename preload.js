@@ -8,5 +8,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   quitApp: () => ipcRenderer.send('quit-app'),
   onCommand: (callback) => ipcRenderer.on('app-command', (_event, cmd) => callback(cmd)),
   onWindowsUpdate: (callback) => ipcRenderer.on('windows-update', (_event, windows) => callback(windows)),
-  listSpriteFiles: () => ipcRenderer.invoke('list-sprite-files')
+  listSpriteFiles: () => ipcRenderer.invoke('list-sprite-files'),
+  getDisplays: () => ipcRenderer.invoke('get-displays')
 });

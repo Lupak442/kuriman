@@ -13,6 +13,7 @@
       <span id="hud-time-display" class="hud-time">00:00</span>
     </div>
     <div class="hud-actions">
+      <button id="btn-toggle-wander" class="hud-btn hud-btn-mode" title="쿠리만쥬 산책 켜기 / 얌전 모드 전환">🐾 산책중</button>
       <button id="btn-toggle-setup" class="hud-btn" title="타이머 설정 열기/닫기">⏱️ 설정</button>
       <button id="btn-open-bag-hud" class="hud-btn" title="쿠리만쥬 가방(북마크) 열기">🎒 가방</button>
       <button id="btn-quit" class="hud-btn hud-btn-danger" title="프로그램 종료">✕</button>
@@ -61,21 +62,34 @@
       <button id="btn-reset-timer" class="btn-outline hidden">↺ 초기화</button>
     </div>
 
+    <!-- 활동 모드 토글 (산책 vs 얌전) -->
+    <div class="mode-control-card">
+      <div class="mode-info">
+        <span class="mode-title">🐾 활동 모드 설정</span>
+        <span id="mode-desc" class="mode-desc">현재 자유롭게 창과 화면을 돌아다닙니다.</span>
+      </div>
+      <button id="btn-panel-toggle-wander" class="btn-mode-toggle active" type="button">
+        🐾 자유 산책 ON
+      </button>
+    </div>
+
     <!-- 동작 즉시 테스트 & 옵션 -->
     <div class="test-gestures-box">
-      <div class="box-label">🎮 제스처 바로 시켜보기 (테스트용)</div>
+      <div class="box-label">🎮 동작/자세 지정하기 (얌전 모드 시 자세 고정)</div>
       <div class="gesture-btns">
         <button class="gesture-btn" data-action="walk">🐾 걷기</button>
-        <button class="gesture-btn" data-action="climb-up">🧗 벽 올라가기</button>
-        <button class="gesture-btn" data-action="climb-down">🧗‍♂️ 벽 내려오기</button>
-        <button class="gesture-btn" data-action="ceiling">🦇 천장 타기</button>
-        <button class="gesture-btn" data-action="drop">🪂 위에서 낙하</button>
+        <button class="gesture-btn" data-action="idle">🧍 멍때리기</button>
+        <button class="gesture-btn" data-action="land">🙇 엎드리기</button>
+        <button class="gesture-btn" data-action="sleep">💤 쿨쿨 낮잠</button>
         <button class="gesture-btn" data-action="snack">🍘 안주 먹방</button>
         <button class="gesture-btn" data-action="haa">🍺 하아ー!</button>
         <button class="gesture-btn" data-action="bag">🎒 가방 열기</button>
+        <button class="gesture-btn" data-action="climb-up">🧗 벽 올라가기</button>
+        <button class="gesture-btn" data-action="ceiling">🦇 천장 타기</button>
+        <button class="gesture-btn" data-action="drop">🪂 위에서 낙하</button>
       </div>
       <div class="guide-tip">
-        💡 <b>조작 팁:</b> 캐릭터를 <b>좌클릭 드래그</b>하면 낑낑거리며 잡히고, <b>우클릭</b>(또는 잡은 채로 우클릭)하면 <b>가방(사이트 런처)</b>을 엽니다!
+        💡 <b>조작 팁:</b> <b>얌전 모드</b>에서 위 버튼을 누르면 그 자세로 가만히 머뭅니다! 캐릭터를 <b>좌클릭 드래그</b>하면 미니창이나 창문 위에 얹을 수 있어요.
       </div>
     </div>
   </div>
