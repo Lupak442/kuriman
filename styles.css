@@ -529,8 +529,9 @@ html, body {
   border-left: 3px solid #3B9E66;
 }
 
-/* 화면을 돌아다니는 쿠리만쥬 캐릭터 */
-#kurimanju-actor {
+/* 화면을 돌아다니는 메인 / 친구 시메지 캐릭터 */
+#kurimanju-actor,
+#friend-actor {
   position: fixed;
   left: 300px;
   top: 200px;
@@ -541,7 +542,8 @@ html, body {
   touch-action: none;
 }
 
-#kurimanju-actor.grabbing {
+#kurimanju-actor.grabbing,
+#friend-actor.grabbing {
   cursor: grabbing;
 }
 
@@ -554,7 +556,8 @@ html, body {
   transition: transform 0.08s ease-out;
 }
 
-#kurimanju-img {
+#kurimanju-img,
+#friend-img {
   width: 135px;
   height: 135px;
   object-fit: contain;
@@ -961,5 +964,302 @@ html, body {
   font-size: 12.5px;
   font-weight: 800;
   cursor: pointer;
+}
+
+/* =========================================================
+   🎭 캐릭터 테마 & 듀얼 산책(친구 놀러오기) 컴포넌트
+   ========================================================= */
+.character-theme-card {
+  background: #FFF8EA;
+  border: 1.8px dashed #D2A679;
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.card-section-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #5C3010;
+  margin-bottom: 8px;
+}
+
+.theme-select-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFFFFF;
+  border: 2px solid #C4A282;
+  border-radius: 12px;
+  padding: 7px 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.theme-btn:hover {
+  background: #FFF4DE;
+  border-color: #8B4A1B;
+  transform: translateY(-1px);
+}
+
+.theme-btn.active {
+  background: #FFF0D4;
+  border-color: #8B4A1B;
+  box-shadow: 0 3px 8px rgba(139, 74, 27, 0.25);
+}
+
+.theme-btn-emoji {
+  font-size: 24px;
+}
+
+.theme-btn-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.theme-btn-info strong {
+  font-size: 12px;
+  font-weight: 800;
+  color: #3B2314;
+}
+
+.theme-btn-info small {
+  font-size: 10px;
+  color: #7A583E;
+}
+
+.friend-invite-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+  border: 1.5px solid #DEC3A5;
+  border-radius: 10px;
+  padding: 7px 11px;
+}
+
+.friend-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.friend-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: #5C3010;
+}
+
+.friend-desc {
+  font-size: 10.5px;
+  color: #8A644A;
+}
+
+.btn-friend-invite {
+  background: linear-gradient(180deg, #3A72AF 0%, #224C7E 100%);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(34, 76, 126, 0.3);
+  transition: transform 0.12s, filter 0.15s;
+}
+
+.btn-friend-invite:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.btn-friend-invite.active {
+  background: linear-gradient(180deg, #9C3838 0%, #761F1F 100%);
+  box-shadow: 0 3px 8px rgba(156, 56, 56, 0.3);
+}
+
+.hud-btn-friend {
+  background: #E8F1FA;
+  border-color: #2D5B8D;
+  color: #1A3E66;
+  font-weight: 800;
+}
+
+.hud-btn-friend:hover {
+  background: #D4E5F7;
+}
+
+.hud-btn-friend.active {
+  background: #FCE8E8;
+  border-color: #A83232;
+  color: #821D1D;
+}
+
+/* =========================================================
+   🦦 랏코 스승님 테마 (네이비 / 스카이블루 / 듬직 감성)
+   ========================================================= */
+body.theme-rakko #mini-hud {
+  background: rgba(240, 246, 252, 0.96);
+  border-color: #1B3B6F;
+  box-shadow: 0 6px 18px rgba(27, 59, 111, 0.22);
+}
+
+body.theme-rakko .hud-badge {
+  color: #1B3B6F;
+}
+
+body.theme-rakko .hud-time {
+  background: #1B3B6F;
+}
+
+body.theme-rakko .hud-btn {
+  background: #E8F1FA;
+  border-color: #2D5B8D;
+  color: #153258;
+}
+
+body.theme-rakko .hud-btn:hover {
+  background: #D4E4F5;
+}
+
+body.theme-rakko .hud-btn-mode {
+  background: #DCECF9;
+  color: #153258;
+}
+
+body.theme-rakko #timer-setup-panel {
+  background: #F8FAFD;
+  border-color: #1B3B6F;
+  box-shadow: 0 12px 32px rgba(27, 59, 111, 0.28);
+}
+
+body.theme-rakko .panel-icon {
+  background: #DCEAF7;
+  border-color: #1B3B6F;
+}
+
+body.theme-rakko .panel-header h1 {
+  color: #153258;
+}
+
+body.theme-rakko .preset-btn {
+  background: #EBF3FA;
+  border-color: #8EB7DC;
+  color: #1B3B6F;
+}
+
+body.theme-rakko .preset-btn:hover {
+  background: #D8E7F5;
+}
+
+body.theme-rakko .preset-btn.active {
+  background: #1B3B6F;
+  color: #FFFFFF;
+  border-color: #10254C;
+}
+
+body.theme-rakko .time-input-row {
+  background: #EEF5FB;
+  border-color: #8EB7DC;
+}
+
+body.theme-rakko .time-field input {
+  color: #153258;
+  border-color: #1B3B6F;
+}
+
+body.theme-rakko .time-field label {
+  color: #2D5B8D;
+}
+
+body.theme-rakko .time-colon {
+  color: #1B3B6F;
+}
+
+body.theme-rakko .btn-primary {
+  background: linear-gradient(180deg, #244C82 0%, #153258 100%);
+  box-shadow: 0 4px 10px rgba(21, 50, 88, 0.3);
+}
+
+body.theme-rakko .btn-primary:hover {
+  background: linear-gradient(180deg, #2C5B9A 0%, #193B67 100%);
+}
+
+body.theme-rakko .mode-control-card,
+body.theme-rakko .character-theme-card {
+  background: #F0F6FC;
+  border-color: #9EC0E2;
+}
+
+body.theme-rakko .card-section-title,
+body.theme-rakko .mode-title {
+  color: #153258;
+}
+
+body.theme-rakko .mode-desc {
+  color: #35608E;
+}
+
+body.theme-rakko .theme-btn {
+  border-color: #ABC8E6;
+}
+
+body.theme-rakko .theme-btn.active {
+  background: #E0EEF9;
+  border-color: #1B3B6F;
+  box-shadow: 0 3px 8px rgba(27, 59, 111, 0.25);
+}
+
+body.theme-rakko .theme-btn-info strong {
+  color: #153258;
+}
+
+body.theme-rakko .friend-invite-box {
+  border-color: #ABC8E6;
+}
+
+body.theme-rakko .friend-tag {
+  color: #153258;
+}
+
+body.theme-rakko .btn-mode-toggle {
+  background: #1B3B6F;
+}
+
+body.theme-rakko .btn-speech-toggle {
+  background: #E4F0FB;
+  border-color: #2D5B8D;
+  color: #153258;
+}
+
+body.theme-rakko .test-gestures-box {
+  background: #EDF4FB;
+  border-color: #ABC8E6;
+}
+
+body.theme-rakko .box-label {
+  color: #153258;
+}
+
+body.theme-rakko .gesture-btn {
+  border-color: #48729E;
+  color: #153258;
+}
+
+body.theme-rakko .gesture-btn:hover {
+  background: #DCECF9;
+}
+
+body.theme-rakko .guide-tip {
+  color: #1E4675;
+  background: #F4F8FC;
+  border-left-color: #2D5B8D;
 }
 

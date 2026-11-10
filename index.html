@@ -13,6 +13,7 @@
       <span id="hud-time-display" class="hud-time">00:00</span>
     </div>
     <div class="hud-actions">
+      <button id="btn-toggle-friend" class="hud-btn hud-btn-friend" title="친구 캐릭터를 불러 함께 산책합니다">🦦 랏코 부르기</button>
       <button id="btn-toggle-wander" class="hud-btn hud-btn-mode" title="쿠리만쥬 산책 켜기 / 얌전 모드 전환">🐾 산책중</button>
       <button id="btn-toggle-setup" class="hud-btn" title="타이머 설정 열기/닫기">⏱️ 설정</button>
       <button id="btn-open-bag-hud" class="hud-btn" title="쿠리만쥬 가방(북마크) 열기">🎒 가방</button>
@@ -86,6 +87,37 @@
       </div>
     </div>
 
+    <!-- 캐릭터 테마 선택 & 친구 놀러오기 카드 -->
+    <div class="character-theme-card">
+      <div class="card-section-title">🎭 메인 캐릭터 &amp; 테마 선택</div>
+      <div class="theme-select-row">
+        <button id="btn-theme-kurimanju" class="theme-btn active" data-theme="kurimanju" type="button">
+          <span class="theme-btn-emoji">🌰</span>
+          <div class="theme-btn-info">
+            <strong>쿠리만쥬</strong>
+            <small>따뜻한 밤색 / 낭만 선배</small>
+          </div>
+        </button>
+        <button id="btn-theme-rakko" class="theme-btn" data-theme="rakko" type="button">
+          <span class="theme-btn-emoji">🦦</span>
+          <div class="theme-btn-info">
+            <strong>랏코 스승님</strong>
+            <small>스승님 네이비 / 듬직 &amp; 파르페</small>
+          </div>
+        </button>
+      </div>
+
+      <div class="friend-invite-box">
+        <div class="friend-info">
+          <span class="friend-tag">👥 듀얼 산책 (친구 부르기)</span>
+          <span id="friend-status-desc" class="friend-desc">혼자 여유롭게 산책 중</span>
+        </div>
+        <button id="btn-panel-toggle-friend" class="btn-friend-invite" type="button">
+          🦦 랏코 스승님 놀러오기!
+        </button>
+      </div>
+    </div>
+
     <!-- 동작 즉시 테스트 & 옵션 -->
     <div class="test-gestures-box">
       <div class="box-label">🎮 동작/자세 지정하기 (얌전 모드 시 자세 고정)</div>
@@ -108,7 +140,7 @@
     </div>
   </div>
 
-  <!-- 화면을 돌아다니는 쿠리만쥬 시메지 컨테이너 -->
+  <!-- 화면을 돌아다니는 메인 시메지 컨테이너 -->
   <div id="kurimanju-actor" class="interactive-ui hidden">
     <!-- 머리 위 타이머 배지 -->
     <div id="actor-timer-pill" class="actor-timer-pill">25:00</div>
@@ -121,9 +153,20 @@
       <span class="effect-tag">부스럭 부스럭..🎒✨</span>
     </div>
 
-    <!-- 실제 쿠리만쥬 스프라이트 이미지 -->
+    <!-- 실제 스프라이트 이미지 -->
     <div id="sprite-wrapper" class="sprite-wrapper">
-      <img id="kurimanju-img" src="assets/sprites/idle.png" alt="Kurimanju" draggable="false" />
+      <img id="kurimanju-img" src="assets/sprites/idle.png" alt="Main Character" draggable="false" />
+    </div>
+  </div>
+
+  <!-- 함께 산책하는 친구 캐릭터 시메지 컨테이너 -->
+  <div id="friend-actor" class="interactive-ui hidden">
+    <!-- 대사/이펙트 말풍선 -->
+    <div id="friend-speech" class="actor-speech hidden">맡겨둬라! 🦦</div>
+
+    <!-- 실제 스프라이트 이미지 -->
+    <div id="friend-sprite-wrapper" class="sprite-wrapper">
+      <img id="friend-img" src="assets/sprites/rakko/idle.png" alt="Friend Character" draggable="false" />
     </div>
   </div>
 

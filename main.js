@@ -211,7 +211,15 @@ function createWindow() {
         click: () => mainWindow?.webContents.send('app-command', 'toggle-wander-mode')
       },
       {
-        label: '🪂 쿠리만쥬 위에서 다시 소환',
+        label: '👥 친구 놀러오기 / 돌려보내기 (2마리 동시 산책)',
+        click: () => mainWindow?.webContents.send('app-command', 'toggle-friend')
+      },
+      {
+        label: '✨ 테마 전환 (쿠리만쥬 ↔ 랏코 스승님)',
+        click: () => mainWindow?.webContents.send('app-command', 'toggle-theme')
+      },
+      {
+        label: '🪂 캐릭터 위에서 다시 소환',
         click: () => mainWindow?.webContents.send('app-command', 'respawn-kurimanju')
       },
       {
@@ -279,7 +287,20 @@ app.whenReady().then(() => {
     try {
       const dir = path.join(__dirname, 'assets', 'sprites');
       if (!fs.existsSync(dir)) return [];
-      return fs.readdirSync(dir);
+      const getFiles = (base, prefix = '') => {
+        let results = [];
+        const entries = fs.readdirSync(base, { withFileTypes: true });
+        for (const ent of entries) {
+          const relPath = prefix ? `${prefix}/${ent.name}` : ent.name;
+          if (ent.isDirectory()) {
+            results = results.concat(getFiles(path.join(base, ent.name), relPath));
+          } else {
+            results.push(relPath);
+          }
+        }
+        return results;
+      };
+      return getFiles(dir);
     } catch (_) {
       return [];
     }
