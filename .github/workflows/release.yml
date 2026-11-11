@@ -9,6 +9,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   release:
     runs-on: windows-latest
@@ -47,15 +50,37 @@ jobs:
         if: steps.check_release.outputs.exists == 'false'
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
         if: steps.check_release.outputs.exists == 'false'
         run: npm ci
 
-      - name: Build and Publish to GitHub Releases
+      - name: Build Windows Installer
         if: steps.check_release.outputs.exists == 'false'
+        run: npx electron-builder --win nsis --publish never
+
+      - name: Publish GitHub Release
+        if: steps.check_release.outputs.exists == 'false'
+        shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --win nsis --publish always
+        run: |
+          $tag = "${{ steps.pkg.outputs.tag }}"
+          $files = @()
+          $files += Get-ChildItem -Path dist -Filter "*.exe" | Select-Object -ExpandProperty FullName
+          $files += Get-ChildItem -Path dist -Filter "*.blockmap" | Select-Object -ExpandProperty FullName
+          if (Test-Path "dist/latest.yml") {
+            $files += (Resolve-Path "dist/latest.yml").Path
+          }
+          if ($files.Count -eq 0) {
+            Write-Error "No build artifacts found in dist/"
+            exit 1
+          }
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag @files --clobber
+          } else {
+            gh release create $tag @files --title $tag --generate-notes
+          }
