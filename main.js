@@ -625,6 +625,10 @@ app.whenReady().then(() => {
     return app.getVersion();
   });
 
+  ipcMain.handle('get-update-status', () => {
+    return latestUpdateState;
+  });
+
   ipcMain.handle('check-for-updates', async () => {
     if (!app.isPackaged) {
       return { ok: false, devMode: true, version: app.getVersion(), status: 'dev' };
@@ -632,9 +636,22 @@ app.whenReady().then(() => {
     if (!autoUpdater) {
       return { ok: false, error: '업데이터 모듈을 찾을 수 없습니다.', version: app.getVersion() };
     }
+    if (latestUpdateState.status === 'downloaded' && latestUpdateState.version && latestUpdateState.version !== app.getVersion()) {
+      sendUpdateStatus(latestUpdateState);
+      return { ok: true, version: latestUpdateState.version, alreadyDownloaded: true };
+    }
+    if (latestUpdateState.status === 'downloading') {
+      sendUpdateStatus(latestUpdateState);
+      return { ok: true, version: latestUpdateState.version || app.getVersion(), downloading: true };
+    }
     try {
       const result = await autoUpdater.checkForUpdates();
-      return { ok: true, version: result?.updateInfo?.version || app.getVersion() };
+      const latestVer = result?.updateInfo?.version || app.getVersion();
+      return {
+        ok: true,
+        version: latestVer,
+        hasUpdate: Boolean(result?.downloadPromise || latestVer !== app.getVersion())
+      };
     } catch (e) {
       return { ok: false, error: e?.message || '업데이트 확인 실패', version: app.getVersion() };
     }
@@ -643,7 +660,7 @@ app.whenReady().then(() => {
   ipcMain.on('install-update-now', () => {
     if (autoUpdater && app.isPackaged) {
       try {
-        autoUpdater.quitAndInstall(false, true);
+        autoUpdater.quitAndInstall(true, true);
       } catch (_) {}
     }
   });
@@ -655,6 +672,17 @@ app.whenReady().then(() => {
   });
 });
 
+function appendUpdaterLog(level, ...args) {
+  if (!app.isPackaged) return;
+  try {
+    const logPath = path.join(app.getPath('userData'), 'updater.log');
+    const msg = args
+      .map((a) => (typeof a === 'string' ? a : (a instanceof Error ? (a.stack || a.message) : JSON.stringify(a))))
+      .join(' ');
+    fs.appendFileSync(logPath, `[${new Date().toISOString()}] [${level}] ${msg}\n`, 'utf8');
+  } catch (_) {}
+}
+
 function sendUpdateStatus(payload) {
   latestUpdateState = { ...latestUpdateState, ...payload };
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -665,6 +693,12 @@ function sendUpdateStatus(payload) {
 function setupAutoUpdater() {
   if (!autoUpdater) return;
 
+  autoUpdater.logger = {
+    info: (...a) => appendUpdaterLog('INFO', ...a),
+    warn: (...a) => appendUpdaterLog('WARN', ...a),
+    error: (...a) => appendUpdaterLog('ERROR', ...a),
+    debug: (...a) => appendUpdaterLog('DEBUG', ...a)
+  };
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 

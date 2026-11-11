@@ -243,10 +243,13 @@
     handleElement.addEventListener('pointercancel', stopDrag);
   }
 
-  // 미니 HUD와 설정창 패널, 축소형 복원 칩을 드래그 가능하게 활성화
+  // 미니 HUD와 설정창 패널, 공지사항 모달, 축소형 복원 칩을 드래그 가능하게 활성화
+  const noticeModal = document.getElementById('notice-modal');
+  const noticeHeader = noticeModal?.querySelector('.notice-header');
   makeDraggable(miniHud, miniHud, 'kurimanju_mini_hud_pos');
   makeDraggable(miniHudCollapsed, miniHudCollapsed, 'kurimanju_collapsed_hud_pos');
   makeDraggable(setupPanel, panelHeader, 'kurimanju_setup_panel_pos');
+  makeDraggable(noticeModal, noticeHeader, 'kurimanju_notice_modal_pos');
 
   // =========================================================
   // 미니 컨트롤 바 최소화(노트북 화면 공간 절약: 완전 숨김 & 더블클릭 복원)
@@ -2448,11 +2451,91 @@
   // =========================================================
   // 8. 자동 업데이트 & 공지사항(패치노트) 시스템
   // =========================================================
-  const noticeModal = document.getElementById('notice-modal');
   const noticeListEl = document.getElementById('notice-list');
   const btnOpenNotice = document.getElementById('btn-open-notice');
   const btnCloseNotice = document.getElementById('btn-close-notice');
   const btnConfirmNotice = document.getElementById('btn-confirm-notice');
+
+  async function positionNoticeModalOnSettingsMonitor(forceCenter = false, measuredW = 390, measuredH = 420) {
+    if (!noticeModal) return;
+    const modalW = measuredW || noticeModal.offsetWidth || 390;
+    const modalH = measuredH || noticeModal.offsetHeight || 420;
+    let targetDisplay = { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight };
+
+    try {
+      const displays = (await window.electronAPI?.getDisplays?.()) || [];
+      if (displays.length > 0) {
+        let refX = null;
+        let refY = null;
+
+        if (setupPanel && !setupPanel.classList.contains('hidden')) {
+          const r = setupPanel.getBoundingClientRect();
+          refX = r.left + r.width * 0.5;
+          refY = r.top + r.height * 0.5;
+        } else {
+          try {
+            const savedPanel = JSON.parse(localStorage.getItem('kurimanju_setup_panel_pos') || 'null');
+            if (savedPanel && Number.isFinite(savedPanel.left) && Number.isFinite(savedPanel.top)) {
+              refX = savedPanel.left + 196;
+              refY = savedPanel.top + 220;
+            }
+          } catch (_) {}
+
+          if (refX === null) {
+            const hudTarget = [miniHud, miniHudCollapsed].find((el) => el && !el.classList.contains('hidden'));
+            if (hudTarget) {
+              const mr = hudTarget.getBoundingClientRect();
+              if (mr.width > 0 && mr.height > 0) {
+                refX = mr.left + mr.width * 0.5;
+                refY = mr.top + mr.height * 0.5;
+              }
+            }
+          }
+
+          if (refX === null) {
+            refX = Math.max(0, window.innerWidth - 214);
+            refY = 260;
+          }
+        }
+
+        targetDisplay =
+          displays.find((d) => refX >= d.x && refX <= d.x + d.width && refY >= d.y && refY <= d.y + d.height) ||
+          displays.find((d) => refX >= d.x && refX <= d.x + d.width) ||
+          displays[0];
+      }
+    } catch (_) {}
+
+    if (!forceCenter) {
+      try {
+        const saved = JSON.parse(localStorage.getItem('kurimanju_notice_modal_pos') || 'null');
+        if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) {
+          const savedCenterX = saved.left + modalW * 0.5;
+          const savedCenterY = saved.top + modalH * 0.5;
+          const isSameMonitor =
+            savedCenterX >= targetDisplay.x &&
+            savedCenterX <= targetDisplay.x + targetDisplay.width &&
+            savedCenterY >= targetDisplay.y &&
+            savedCenterY <= targetDisplay.y + targetDisplay.height;
+          if (isSameMonitor) {
+            const maxL = targetDisplay.x + Math.max(8, targetDisplay.width - modalW - 8);
+            const maxT = targetDisplay.y + Math.max(8, targetDisplay.height - modalH - 8);
+            noticeModal.style.left = `${Math.min(Math.max(targetDisplay.x + 8, saved.left), maxL)}px`;
+            noticeModal.style.top = `${Math.min(Math.max(targetDisplay.y + 8, saved.top), maxT)}px`;
+            noticeModal.style.right = 'auto';
+            noticeModal.style.bottom = 'auto';
+            return;
+          }
+        }
+      } catch (_) {}
+    }
+
+    const left = targetDisplay.x + Math.max(12, Math.round((targetDisplay.width - modalW) * 0.5));
+    const top = targetDisplay.y + Math.max(12, Math.round((targetDisplay.height - modalH) * 0.5));
+    noticeModal.style.left = `${left}px`;
+    noticeModal.style.top = `${top}px`;
+    noticeModal.style.right = 'auto';
+    noticeModal.style.bottom = 'auto';
+  }
 
   function renderNoticeModal() {
     if (!noticeListEl) return;
@@ -2491,9 +2574,21 @@
     });
   }
 
-  function openNoticeModal() {
+  async function openNoticeModal(forceCenter = false) {
     renderNoticeModal();
-    noticeModal?.classList.remove('hidden');
+    if (!noticeModal) return;
+
+    noticeModal.style.visibility = 'hidden';
+    noticeModal.style.animation = 'none';
+    noticeModal.classList.remove('hidden');
+    const measuredW = noticeModal.offsetWidth || 390;
+    const measuredH = noticeModal.offsetHeight || 420;
+    noticeModal.classList.add('hidden');
+    noticeModal.style.visibility = '';
+
+    await positionNoticeModalOnSettingsMonitor(forceCenter, measuredW, measuredH);
+    noticeModal.style.animation = '';
+    noticeModal.classList.remove('hidden');
   }
 
   function closeNoticeModal() {
@@ -2514,6 +2609,7 @@
   btnConfirmNotice?.addEventListener('click', () => closeNoticeModal());
 
   let currentAppVersion = '1.0.2';
+  let isUpdateDownloading = false;
 
   function renderUpdateState(data) {
     if (!data) return;
@@ -2523,11 +2619,16 @@
       if (appVersionText) appVersionText.textContent = `${verPrefix} · 새 버전 확인 중...`;
       if (btnCheckUpdate) btnCheckUpdate.disabled = true;
     } else if (data.status === 'available') {
+      isUpdateDownloading = true;
+      if (btnCheckUpdate) btnCheckUpdate.disabled = true;
       if (appVersionText) appVersionText.textContent = `${verPrefix} · v${data.version} 발견! 다운로드 시작`;
       showActorSpeech(mainActor, resolveQuote(mainActor, 'updateAvailable', (v) => `새 버전(v${v})을 발견해서 받고 있어! 📥`, data.version), 3000);
     } else if (data.status === 'downloading') {
+      isUpdateDownloading = true;
+      if (btnCheckUpdate) btnCheckUpdate.disabled = true;
       if (appVersionText) appVersionText.textContent = `${verPrefix} · 다운로드 중 (${data.percent || 0}%)`;
     } else if (data.status === 'downloaded') {
+      isUpdateDownloading = false;
       if (appVersionText) appVersionText.textContent = `v${data.version} 다운로드 완료!`;
       if (btnCheckUpdate) {
         btnCheckUpdate.disabled = false;
@@ -2545,9 +2646,11 @@
       showActorSpeech(mainActor, resolveQuote(mainActor, 'updateDownloaded', (v) => `업데이트(v${v}) 준비 끝! 재시작할까? 🚀`, data.version), 4000);
       playHaaFanfare();
     } else if (data.status === 'latest') {
+      isUpdateDownloading = false;
       if (appVersionText) appVersionText.textContent = `${verPrefix} · 최신 버전입니다`;
       if (btnCheckUpdate) btnCheckUpdate.disabled = false;
     } else if (data.status === 'error') {
+      isUpdateDownloading = false;
       if (appVersionText) appVersionText.textContent = `${verPrefix} · 확인 실패`;
       if (btnCheckUpdate) btnCheckUpdate.disabled = false;
     }
@@ -2558,14 +2661,25 @@
     if (btnCheckUpdate) btnCheckUpdate.disabled = true;
     if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 확인 중...`;
 
+    let keepDisabledForDownload = false;
     try {
       const res = await window.electronAPI.checkForUpdates();
       if (res?.devMode) {
         if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 개발 모드`;
         showActorSpeech(mainActor, resolveQuote(mainActor, 'updateDevMode', '설치(.exe) 후에는 자동으로 최신 버전을 받아와요! ✨'), 3200);
+      } else if (res?.alreadyDownloaded) {
+        renderUpdateState({ status: 'downloaded', version: res.version });
+      } else if (res?.downloading) {
+        keepDisabledForDownload = true;
+        isUpdateDownloading = true;
+        if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · v${res.version} 다운로드 중...`;
       } else if (res && !res.ok) {
         if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 확인 실패`;
         showActorSpeech(mainActor, resolveQuote(mainActor, 'updateNotFound', '업데이트 서버를 아직 찾지 못했어요 (GitHub Release 확인) 💦'), 3200);
+      } else if (res && res.ok && res.version && res.version !== currentAppVersion) {
+        keepDisabledForDownload = true;
+        isUpdateDownloading = true;
+        if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · v${res.version} 다운로드 중...`;
       } else if (res && res.ok && res.version === currentAppVersion) {
         if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 최신 버전입니다`;
         showActorSpeech(mainActor, resolveQuote(mainActor, 'updateLatest', (v) => `현재 최신 버전(v${v})을 사용 중이야! 🌟`, currentAppVersion), 2600);
@@ -2573,7 +2687,9 @@
     } catch (_) {
       if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 확인 실패`;
     } finally {
-      if (btnCheckUpdate) btnCheckUpdate.disabled = false;
+      if (btnCheckUpdate && !keepDisabledForDownload && !isUpdateDownloading) {
+        btnCheckUpdate.disabled = false;
+      }
     }
   }
 
@@ -2596,11 +2712,18 @@
       }
     } catch (_) {}
 
+    try {
+      const initialUpdateState = await window.electronAPI?.getUpdateStatus?.();
+      if (initialUpdateState && initialUpdateState.status && initialUpdateState.status !== 'idle') {
+        renderUpdateState(initialUpdateState);
+      }
+    } catch (_) {}
+
     // 새 버전 업데이트 후 첫 실행 시 공지사항 자동 1회 표시
     try {
       const lastSeen = localStorage.getItem('kurimanju_last_seen_version');
       if (lastSeen !== currentAppVersion && Array.isArray(window.APP_CHANGELOG) && window.APP_CHANGELOG.length > 0) {
-        openNoticeModal();
+        openNoticeModal(true);
         localStorage.setItem('kurimanju_last_seen_version', currentAppVersion);
       }
     } catch (_) {}

@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getInitialTheme: () => ipcRenderer.invoke('get-initial-theme'),
   createShortcuts: (options) => ipcRenderer.invoke('create-shortcuts', options),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   installUpdateNow: () => ipcRenderer.send('install-update-now'),
   onUpdateStatus: (callback) => ipcRenderer.on('update-status', (_event, data) => callback(data))
