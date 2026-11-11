@@ -1,6 +1,6 @@
 {
   "name": "kurimanju-shimeji-timer",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Chiikawa Kurimanju Desktop Shimeji with Timer & Bag Bookmark Launcher",
   "main": "main.js",
   "scripts": {
@@ -32,7 +32,7 @@
     "nsis": {
       "oneClick": true,
       "perMachine": false,
-      "createDesktopShortcut": true,
+      "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
       "shortcutName": "먼작귀 시메지",
       "artifactName": "Kurimanju-Shimeji-Setup-${version}.${ext}"

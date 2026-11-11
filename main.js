@@ -366,6 +366,24 @@ function syncDefaultDesktopShortcutIfExists(theme) {
   } catch (_) {}
 }
 
+async function ensureInitialDesktopShortcut(theme) {
+  if (!app.isPackaged) return;
+  try {
+    const settings = readAppSettings();
+    if (settings.initialShortcutCreated) return;
+
+    const defaultLnk = path.join(app.getPath('desktop'), '먼작귀 시메지.lnk');
+    if (!fs.existsSync(defaultLnk)) {
+      const res = await createThemeShortcuts({ mode: 'desktop-single', theme });
+      if (res && res.ok) {
+        writeAppSettings({ initialShortcutCreated: true });
+      }
+    } else {
+      writeAppSettings({ initialShortcutCreated: true });
+    }
+  } catch (_) {}
+}
+
 function startWindowTracker() {
   let scriptPath = path.join(__dirname, 'scripts', 'window-tracker.ps1');
   if (app.isPackaged) {
@@ -523,6 +541,8 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
+  const initialInfo = getInitialThemeInfo();
+  ensureInitialDesktopShortcut(initialInfo.theme);
 
   ipcMain.on('set-ignore-mouse-events', (event, ignore) => {
     const win = BrowserWindow.fromWebContents(event.sender);
