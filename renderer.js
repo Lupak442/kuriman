@@ -611,13 +611,13 @@
     }
     if (btnPanelToggleWander && modeDesc) {
       if (isWanderEnabled) {
-        btnPanelToggleWander.textContent = '🐾 자유 산책 ON';
+        btnPanelToggleWander.textContent = '🐾 산책 ON';
         btnPanelToggleWander.classList.remove('calm');
-        modeDesc.textContent = '현재 자유롭게 창과 화면을 돌아다닙니다.';
+        modeDesc.textContent = '자유롭게 화면을 돌아다니는 중';
       } else {
-        btnPanelToggleWander.textContent = '🪑 얌전 모드 ON';
+        btnPanelToggleWander.textContent = '🪑 얌전 ON';
         btnPanelToggleWander.classList.add('calm');
-        modeDesc.textContent = '이동을 멈추고 제자리에서 얌전히 행동합니다.';
+        modeDesc.textContent = '제자리에서 얌전히 대기 중';
       }
     }
   }
@@ -2292,12 +2292,12 @@
     }
     if (btnPanelToggleFriend) {
       btnPanelToggleFriend.classList.toggle('active', isFriendActive);
-      btnPanelToggleFriend.textContent = isFriendActive ? `👋 ${friendIcon} ${friendName} 돌려보내기` : `✨ ${friendIcon} ${friendName} 초대하기`;
+      btnPanelToggleFriend.textContent = isFriendActive ? '👋 돌려보내기' : '✨ 초대하기';
     }
     if (friendStatusDesc) {
       friendStatusDesc.textContent = isFriendActive
-        ? `현재 ${friendName}가 함께 화면을 산책하고 있어요!`
-        : `버튼을 누르면 ${friendName}가 놀러와 둘이서 함께 산책해요!`;
+        ? `${friendName}와 함께 산책 중!`
+        : `${friendName} 불러서 함께 산책하기`;
     }
   }
 
@@ -2431,10 +2431,89 @@
     }
   });
 
+  // 설정창 세그먼트 탭 전환 (⏱️ 타이머 / 🎭 캐릭터 · 모션)
+  const panelTabBtns = document.querySelectorAll('.panel-tab-btn');
+  const tabPanelTimer = document.getElementById('tab-panel-timer');
+  const tabPanelCharacter = document.getElementById('tab-panel-character');
+
+  panelTabBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetTab = btn.dataset.tab;
+      panelTabBtns.forEach((b) => b.classList.toggle('active', b === btn));
+      tabPanelTimer?.classList.toggle('hidden', targetTab !== 'timer');
+      tabPanelCharacter?.classList.toggle('hidden', targetTab !== 'character');
+    });
+  });
+
   // =========================================================
-  // 8. 자동 업데이트 UI 및 알림 연동
+  // 8. 자동 업데이트 & 공지사항(패치노트) 시스템
   // =========================================================
-  let currentAppVersion = '1.0.0';
+  const noticeModal = document.getElementById('notice-modal');
+  const noticeListEl = document.getElementById('notice-list');
+  const btnOpenNotice = document.getElementById('btn-open-notice');
+  const btnCloseNotice = document.getElementById('btn-close-notice');
+  const btnConfirmNotice = document.getElementById('btn-confirm-notice');
+
+  function renderNoticeModal() {
+    if (!noticeListEl) return;
+    const entries = Array.isArray(window.APP_CHANGELOG) ? window.APP_CHANGELOG : [];
+    noticeListEl.innerHTML = '';
+
+    if (entries.length === 0) {
+      noticeListEl.innerHTML = '<div style="text-align:center; padding:18px; font-size:12px;">등록된 공지사항이 아직 없습니다.</div>';
+      return;
+    }
+
+    entries.forEach((entry, idx) => {
+      const card = document.createElement('div');
+      const isCurrentOrFirst = entry.version === currentAppVersion || idx === 0;
+      card.className = `notice-card${idx === 0 ? ' latest' : ''}`;
+
+      const badgeHtml = entry.badge
+        ? `<span class="notice-badge-new">${escapeHtml(entry.badge)}</span>`
+        : (isCurrentOrFirst ? '<span class="notice-badge-new">NEW</span>' : '');
+      const itemsHtml = Array.isArray(entry.items)
+        ? entry.items.map((line) => `<li>${escapeHtml(line)}</li>`).join('')
+        : '';
+
+      card.innerHTML = `
+        <div class="notice-card-head">
+          <div class="notice-ver-wrap">
+            <span class="notice-ver">v${escapeHtml(entry.version)}</span>
+            ${badgeHtml}
+          </div>
+          <span class="notice-date">${escapeHtml(entry.date || '')}</span>
+        </div>
+        <div class="notice-card-title">${escapeHtml(entry.title || '')}</div>
+        <ul class="notice-items">${itemsHtml}</ul>
+      `;
+      noticeListEl.appendChild(card);
+    });
+  }
+
+  function openNoticeModal() {
+    renderNoticeModal();
+    noticeModal?.classList.remove('hidden');
+  }
+
+  function closeNoticeModal() {
+    noticeModal?.classList.add('hidden');
+    try {
+      localStorage.setItem('kurimanju_last_seen_version', currentAppVersion);
+    } catch (_) {}
+  }
+
+  btnOpenNotice?.addEventListener('click', () => {
+    if (noticeModal?.classList.contains('hidden')) {
+      openNoticeModal();
+    } else {
+      closeNoticeModal();
+    }
+  });
+  btnCloseNotice?.addEventListener('click', () => closeNoticeModal());
+  btnConfirmNotice?.addEventListener('click', () => closeNoticeModal());
+
+  let currentAppVersion = '1.0.2';
 
   function renderUpdateState(data) {
     if (!data) return;
@@ -2514,6 +2593,15 @@
       if (ver) {
         currentAppVersion = ver;
         if (appVersionText) appVersionText.textContent = `v${ver}`;
+      }
+    } catch (_) {}
+
+    // 새 버전 업데이트 후 첫 실행 시 공지사항 자동 1회 표시
+    try {
+      const lastSeen = localStorage.getItem('kurimanju_last_seen_version');
+      if (lastSeen !== currentAppVersion && Array.isArray(window.APP_CHANGELOG) && window.APP_CHANGELOG.length > 0) {
+        openNoticeModal();
+        localStorage.setItem('kurimanju_last_seen_version', currentAppVersion);
       }
     } catch (_) {}
   })();

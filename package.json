@@ -1,6 +1,6 @@
 {
   "name": "kurimanju-shimeji-timer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Chiikawa Kurimanju Desktop Shimeji with Timer & Bag Bookmark Launcher",
   "main": "main.js",
   "scripts": {

@@ -119,12 +119,12 @@ window.CHARACTER_CONFIGS = {
     },
     ui: {
       docTitle: '쿠리만쥬 시메지 타이머',
-      panelTitle: '쿠리만쥬 뽀모도로 타이머',
-      panelSubtitle: '퇴근 후 시원한 한 잔을 기다리며 일하는 미니 시메지 타이머 🍺',
-      startBtn: '▶ 타이머 시작 & 쿠리만쥬 소환',
+      panelTitle: '쿠리만쥬 타이머',
+      panelSubtitle: '오늘도 한 잔을 기다리며 집중 🍺',
+      startBtn: '▶ 타이머 시작 & 만쥬 소환',
       bagHudBtn: '🎒 가방',
       bagHudTitle: '쿠리만쥬 가방(북마크) 열기',
-      bagGestureBtn: '🎒 가방 열기',
+      bagGestureBtn: '🎒 가방열기',
       bagEffectTag: '부스럭 부스럭..🎒✨',
       bagKnotIcon: '🎒',
       bagTitle: '쿠리만쥬의 보따리 가방',
@@ -139,10 +139,10 @@ window.CHARACTER_CONFIGS = {
       toastDesc: '고생했어요! 밤만쥬 선배와 한잔하며 쉬어갈까요?',
       toastBreakBtn: '🍵 5분 휴식 시작',
       toastBagBtn: '🎒 가방에서 사이트 열기',
-      gestureSleep: '🍺 윽.. 숙취',
-      gestureSnack: '🍘 안주 먹방',
+      gestureSleep: '🍺 숙취/휴식',
+      gestureSnack: '🍘 안주 냠',
       gestureHaa: '🍺 하아ー!',
-      guideTipHtml: '💡 <b>조작 팁:</b> 쿠리만쥬를 <b>더블클릭</b>하면 상단 타이틀바가 뿅! 나타나거나 숨겨져요. <b>좌클릭 드래그</b>로 창 위에 얹을 수 있고, <b>우클릭</b>하면 가방이 열립니다.'
+      guideTipHtml: '💡 <b>조작 팁:</b> 더블클릭(상단바) · 드래그(창 올리기) · 우클릭(가방)'
     },
     states: {
       idle: ['assets/sprites/idle.png'],
@@ -273,12 +273,12 @@ window.CHARACTER_CONFIGS = {
     },
     ui: {
       docTitle: '랏코 스승님 시메지 타이머',
-      panelTitle: '랏코 스승님의 모험 타이머',
-      panelSubtitle: '스승님과 함께하는 고요하고 늠름한 집중 시간 ⚔️',
-      startBtn: '▶ 타이머 시작 & 랏코 스승님 소환',
+      panelTitle: '랏코 스승님 타이머',
+      panelSubtitle: '스승님과 함께하는 고요한 집중 시간 ⚔️',
+      startBtn: '▶ 타이머 시작 & 스승님 소환',
       bagHudBtn: '🔑 차고지',
       bagHudTitle: '랏코 스승님 차고지(북마크) 열기',
-      bagGestureBtn: '🔑 차고지 열기',
+      bagGestureBtn: '🔑 차고지',
       bagEffectTag: '찰칵.. 차고지 확인 중..🔑🏎️',
       bagKnotIcon: '🔑',
       bagTitle: '랏코 스승님의 비밀 차고지',
@@ -293,10 +293,10 @@ window.CHARACTER_CONFIGS = {
       toastDesc: '고생 많았다! 스승님과 달콤한 파르페로 쉬어갈까?',
       toastBreakBtn: '🍨 5분 파르페 휴식',
       toastBagBtn: '🔑 차고지에서 사이트 열기',
-      gestureSleep: '🚙 충격에 익숙해지기',
+      gestureSleep: '🚙 추위버티기',
       gestureSnack: '🍨 파르페 냠',
       gestureHaa: '🏎️ 하아아~!',
-      guideTipHtml: '💡 <b>조작 팁:</b> 랏코 스승님을 <b>더블클릭</b>하면 상단 타이틀바가 나타났다가 숨겨진다! <b>좌클릭 드래그</b>로 창 위에 올려둘 수 있고, <b>우클릭</b>하면 차고지가 열리네.'
+      guideTipHtml: '💡 <b>조작 팁:</b> 더블클릭(상단바) · 드래그(창 올리기) · 우클릭(차고지)'
     },
     states: {
       idle: ['assets/sprites/rakko/idle.png'],
