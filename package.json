@@ -5,25 +5,44 @@
   "main": "main.js",
   "scripts": {
     "start": "node start.js",
-    "build": "electron-builder --win portable"
+    "build": "electron-builder --win nsis",
+    "build:portable": "electron-builder --win portable",
+    "publish": "electron-builder --win nsis --publish always"
   },
   "build": {
     "appId": "com.kurimanju.shimeji",
-    "productName": "쿠리만쥬-시메지",
+    "productName": "먼작귀 시메지",
     "directories": {
       "output": "dist"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Lupak442",
+        "repo": "kuriman",
+        "releaseType": "release"
+      }
+    ],
     "win": {
       "target": [
-        "portable"
+        "nsis"
       ],
       "icon": "assets/icon.ico"
     },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "먼작귀 시메지",
+      "artifactName": "Kurimanju-Shimeji-Setup-${version}.${ext}"
+    },
     "portable": {
-      "artifactName": "${productName}.exe"
+      "artifactName": "Kurimanju-Shimeji-Portable-${version}.${ext}"
     },
     "asarUnpack": [
-      "scripts/**/*"
+      "scripts/**/*",
+      "assets/*.ico"
     ],
     "files": [
       "**/*",
@@ -44,5 +63,8 @@
   "devDependencies": {
     "electron": "^33.0.0",
     "electron-builder": "^26.0.12"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
   }
 }

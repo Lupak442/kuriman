@@ -1263,3 +1263,142 @@ body.theme-rakko .guide-tip {
   border-left-color: #2D5B8D;
 }
 
+.shortcut-tools-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.shortcut-btn {
+  background: #FFFFFF;
+  border: 1.5px solid #D2A679;
+  border-radius: 9px;
+  padding: 6px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #5C3010;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  text-align: center;
+}
+
+.shortcut-btn:hover {
+  background: #FFF2DC;
+  border-color: #8B4A1B;
+  transform: translateY(-1px);
+}
+
+.shortcut-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+body.theme-rakko .shortcut-btn {
+  border-color: #9EC0E2;
+  color: #153258;
+}
+
+body.theme-rakko .shortcut-btn:hover {
+  background: #E0EEF9;
+  border-color: #1B3B6F;
+}
+
+/* 버전 정보 & 자동 업데이트 바 */
+.update-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #DEC3A5;
+}
+
+.app-version-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7A583E;
+}
+
+.update-footer-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.update-check-btn,
+.update-install-btn {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.update-check-btn {
+  background: #FFFDF7;
+  border: 1.5px solid #C4A282;
+  color: #5C3010;
+}
+
+.update-check-btn:hover {
+  background: #FFF2DC;
+  border-color: #8B4A1B;
+}
+
+.update-check-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.update-install-btn {
+  background: linear-gradient(180deg, #43A047 0%, #2E7D32 100%);
+  border: none;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(46, 125, 50, 0.35);
+}
+
+.update-install-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+body.theme-rakko .update-footer-bar {
+  border-top-color: #ABC8E6;
+}
+
+body.theme-rakko .app-version-text {
+  color: #35608E;
+}
+
+body.theme-rakko .update-check-btn {
+  border-color: #9EC0E2;
+  color: #153258;
+}
+
+body.theme-rakko .update-check-btn:hover {
+  background: #E0EEF9;
+  border-color: #1B3B6F;
+}
+
+/* 업데이트 준비 완료 토스트 */
+#update-ready-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  background: #FFFDF7;
+  border: 3px solid #2E7D32;
+  border-radius: 20px;
+  padding: 14px 18px;
+  box-shadow: 0 12px 30px rgba(45, 23, 8, 0.3);
+  z-index: 9600;
+  text-align: center;
+  animation: speechBounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+body.theme-rakko #update-ready-toast {
+  border-color: #1B3B6F;
+  background: #F4F8FC;
+}
+

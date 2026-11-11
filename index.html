@@ -116,6 +116,15 @@
           🦦 랏코 스승님 놀러오기!
         </button>
       </div>
+
+      <div class="shortcut-tools-row">
+        <button id="btn-shortcut-desktop" class="shortcut-btn" type="button" title="현재 선택한 캐릭터 아이콘으로 바탕화면에 바로가기를 생성합니다">
+          🖥️ 바탕화면 바로가기 생성
+        </button>
+        <button id="btn-shortcut-all" class="shortcut-btn" type="button" title="실행 폴더에 쿠리만쥬·랏코 스승님 바로가기를 모두 생성합니다">
+          📂 캐릭터별 바로가기 모두 생성
+        </button>
+      </div>
     </div>
 
     <!-- 동작 즉시 테스트 & 옵션 -->
@@ -136,6 +145,14 @@
       </div>
       <div class="guide-tip">
         💡 <b>조작 팁:</b> 쿠리만쥬를 <b>더블클릭</b>하면 상단 타이틀바가 뿅! 나타나거나 숨겨져요. <b>좌클릭 드래그</b>로 창 위에 얹을 수 있고, <b>우클릭</b>하면 가방이 열립니다.
+      </div>
+    </div>
+
+    <div class="update-footer-bar">
+      <span id="app-version-text" class="app-version-text">v1.0.0</span>
+      <div class="update-footer-btns">
+        <button id="btn-check-update" class="update-check-btn" type="button">🔄 업데이트 확인</button>
+        <button id="btn-install-update" class="update-install-btn hidden" type="button">🚀 지금 업데이트</button>
       </div>
     </div>
   </div>
@@ -227,6 +244,16 @@
       <button id="btn-toast-break" class="btn-toast-primary">🍵 5분 휴식 시작</button>
       <button id="btn-toast-bag" class="btn-toast-secondary">🎒 가방에서 사이트 열기</button>
       <button id="btn-toast-dismiss" class="btn-toast-close">닫기</button>
+    </div>
+  </div>
+
+  <!-- 새 버전 다운로드 완료 시 나타나는 자동 업데이트 토스트 -->
+  <div id="update-ready-toast" class="interactive-ui hidden">
+    <div id="update-toast-title" class="toast-title">✨ 새 버전이 도착했어요!</div>
+    <p id="update-toast-desc" class="toast-desc">지금 재시작하면 자동으로 최신 버전이 적용됩니다.</p>
+    <div class="toast-btns">
+      <button id="btn-update-restart" class="btn-toast-primary">🚀 지금 업데이트 후 재시작</button>
+      <button id="btn-update-later" class="btn-toast-close">나중에 (종료 시 적용)</button>
     </div>
   </div>
 

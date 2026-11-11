@@ -3,9 +3,15 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+let autoUpdater = null;
+try {
+  ({ autoUpdater } = require('electron-updater'));
+} catch (_) {}
+
 let mainWindow = null;
 let tray = null;
 let trackerProc = null;
+let latestUpdateState = { status: 'idle', version: app.getVersion() };
 
 const DEFAULT_BOOKMARKS_PATH = path.join(__dirname, 'bookmarks.json');
 
@@ -48,10 +54,72 @@ function writeBookmarks(bookmarks) {
   }
 }
 
-function createTrayIcon() {
-  const iconPath = path.join(__dirname, 'assets', 'icon.png');
-  if (fs.existsSync(iconPath)) {
-    return nativeImage.createFromPath(iconPath).resize({ width: 24, height: 24 });
+function getSettingsFilePath() {
+  if (app.isPackaged) {
+    return path.join(app.getPath('userData'), 'app-settings.json');
+  }
+  return path.join(__dirname, 'app-settings.json');
+}
+
+function readAppSettings() {
+  try {
+    const p = getSettingsFilePath();
+    if (fs.existsSync(p)) {
+      return JSON.parse(fs.readFileSync(p, 'utf8'));
+    }
+  } catch (_) {}
+  return {};
+}
+
+function writeAppSettings(partial) {
+  try {
+    const cur = readAppSettings();
+    const next = { ...cur, ...partial };
+    fs.writeFileSync(getSettingsFilePath(), JSON.stringify(next, null, 2), 'utf8');
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function getInitialThemeInfo() {
+  for (const arg of process.argv) {
+    const m = String(arg).match(/^--theme=(kurimanju|rakko)$/i);
+    if (m) {
+      return { theme: m[1].toLowerCase(), fromCli: true };
+    }
+  }
+  const saved = readAppSettings();
+  if (saved.theme === 'rakko' || saved.theme === 'kurimanju') {
+    return { theme: saved.theme, fromCli: false };
+  }
+  return { theme: 'kurimanju', fromCli: false };
+}
+
+function resolveAssetPath(filename) {
+  const p = path.join(__dirname, 'assets', filename);
+  if (app.isPackaged) {
+    const unpacked = p.replace('app.asar', 'app.asar.unpacked');
+    if (fs.existsSync(unpacked)) return unpacked;
+  }
+  return p;
+}
+
+function getThemeIconPaths(theme = 'kurimanju') {
+  const isRakko = theme === 'rakko';
+  const icoPath = resolveAssetPath(isRakko ? 'rakko.ico' : 'icon.ico');
+  const pngPath = resolveAssetPath(isRakko ? 'rakko.png' : 'icon.png');
+  return { icoPath, pngPath };
+}
+
+function createTrayIcon(theme = 'kurimanju') {
+  const { icoPath, pngPath } = getThemeIconPaths(theme);
+  const iconPath = fs.existsSync(pngPath) ? pngPath : (fs.existsSync(icoPath) ? icoPath : null);
+  if (iconPath) {
+    const img = nativeImage.createFromPath(iconPath);
+    if (!img.isEmpty()) {
+      return img.resize({ width: 24, height: 24 });
+    }
   }
   const svgIcon = `
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
@@ -63,6 +131,174 @@ function createTrayIcon() {
   `;
   const base64 = Buffer.from(svgIcon).toString('base64');
   return nativeImage.createFromDataURL(`data:image/svg+xml;base64,${base64}`);
+}
+
+function applyMainWindowAndTrayTheme(theme = 'kurimanju') {
+  const validTheme = theme === 'rakko' ? 'rakko' : 'kurimanju';
+  const isRakko = validTheme === 'rakko';
+  const { icoPath, pngPath } = getThemeIconPaths(validTheme);
+
+  const winIconPath = fs.existsSync(icoPath) ? icoPath : (fs.existsSync(pngPath) ? pngPath : null);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (winIconPath) {
+      const winImg = nativeImage.createFromPath(winIconPath);
+      if (!winImg.isEmpty()) {
+        mainWindow.setIcon(winImg);
+      }
+    }
+    mainWindow.setTitle(isRakko ? '랏코 스승님 시메지 타이머' : '쿠리만쥬 시메지 타이머');
+  }
+
+  if (tray && !tray.isDestroyed()) {
+    tray.setImage(createTrayIcon(validTheme));
+    tray.setToolTip(isRakko ? '랏코 스승님 시메지 타이머 ⚔️' : '쿠리만쥬 시메지 타이머 (밤만쥬 선배) 🌰');
+  }
+}
+
+function ensurePersistentThemeIcon(theme = 'kurimanju') {
+  const validTheme = theme === 'rakko' ? 'rakko' : 'kurimanju';
+  const iconName = validTheme === 'rakko' ? 'rakko.ico' : 'icon.ico';
+  const srcIco = resolveAssetPath(iconName);
+  if (!fs.existsSync(srcIco)) return null;
+
+  try {
+    const iconDir = path.join(app.getPath('userData'), 'icons');
+    if (!fs.existsSync(iconDir)) {
+      fs.mkdirSync(iconDir, { recursive: true });
+    }
+    const destIco = path.join(iconDir, iconName);
+    fs.copyFileSync(srcIco, destIco);
+    return destIco;
+  } catch (_) {
+    return srcIco;
+  }
+}
+
+function getLaunchTargetInfo() {
+  if (app.isPackaged) {
+    const portableExe = process.env.PORTABLE_EXECUTABLE_FILE;
+    const exePath = (portableExe && fs.existsSync(portableExe)) ? portableExe : process.execPath;
+    return {
+      targetPath: exePath,
+      baseArgs: '',
+      workingDir: path.dirname(exePath),
+      appDir: path.dirname(exePath)
+    };
+  }
+  return {
+    targetPath: process.execPath,
+    baseArgs: `"${__dirname}" `,
+    workingDir: __dirname,
+    appDir: __dirname
+  };
+}
+
+function escapePsSingleQuote(str) {
+  return String(str || '').replace(/'/g, "''");
+}
+
+function runPowershellEncoded(psScript) {
+  return new Promise((resolve) => {
+    const encoded = Buffer.from(psScript, 'utf16le').toString('base64');
+    const proc = spawn('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-ExecutionPolicy', 'Bypass',
+      '-WindowStyle', 'Hidden',
+      '-EncodedCommand', encoded
+    ], { windowsHide: true });
+
+    let err = '';
+    proc.stderr.on('data', (d) => { err += d.toString('utf8'); });
+    proc.on('close', (code) => {
+      resolve({ ok: code === 0, error: err.trim() });
+    });
+    proc.on('error', (e) => {
+      resolve({ ok: false, error: e.message });
+    });
+  });
+}
+
+async function createShortcutsByItems(items) {
+  if (!items || items.length === 0) return { ok: false, error: '생성할 항목이 없습니다.' };
+
+  const lines = ['$wsh = New-Object -ComObject WScript.Shell'];
+  for (const item of items) {
+    lines.push(`$sc = $wsh.CreateShortcut('${escapePsSingleQuote(item.lnkPath)}')`);
+    lines.push(`$sc.TargetPath = '${escapePsSingleQuote(item.targetPath)}'`);
+    lines.push(`$sc.Arguments = '${escapePsSingleQuote(item.args)}'`);
+    lines.push(`$sc.WorkingDirectory = '${escapePsSingleQuote(item.workingDir)}'`);
+    if (item.iconPath) {
+      lines.push(`$sc.IconLocation = '${escapePsSingleQuote(item.iconPath)},0'`);
+    }
+    lines.push(`$sc.Description = '${escapePsSingleQuote(item.description)}'`);
+    lines.push('$sc.Save()');
+  }
+  lines.push(
+    "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class ShNotify { [DllImport(\"shell32.dll\")] public static extern void SHChangeNotify(int wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2); }' -ErrorAction SilentlyContinue"
+  );
+  lines.push("if ([Type]::GetType('ShNotify')) { [ShNotify]::SHChangeNotify(0x08000000, 0x0000, [IntPtr]::Zero, [IntPtr]::Zero) }");
+
+  return runPowershellEncoded(lines.join('\r\n'));
+}
+
+async function createThemeShortcuts({ mode = 'desktop-single', theme = 'kurimanju' } = {}) {
+  const validTheme = theme === 'rakko' ? 'rakko' : 'kurimanju';
+  const launch = getLaunchTargetInfo();
+  const desktopDir = app.getPath('desktop');
+
+  const items = [];
+  if (mode === 'desktop-single') {
+    const isRakko = validTheme === 'rakko';
+    items.push({
+      lnkPath: path.join(desktopDir, '먼작귀 시메지.lnk'),
+      targetPath: launch.targetPath,
+      args: `${launch.baseArgs}--theme=${validTheme}`.trim(),
+      workingDir: launch.workingDir,
+      iconPath: ensurePersistentThemeIcon(validTheme),
+      description: isRakko ? '랏코 스승님과 함께하는 먼작귀 시메지 타이머' : '쿠리만쥬와 함께하는 먼작귀 시메지 타이머'
+    });
+  } else {
+    const destDir = mode === 'desktop-all' ? desktopDir : launch.appDir;
+    items.push(
+      {
+        lnkPath: path.join(destDir, '먼작귀 시메지 (쿠리만쥬).lnk'),
+        targetPath: launch.targetPath,
+        args: `${launch.baseArgs}--theme=kurimanju`.trim(),
+        workingDir: launch.workingDir,
+        iconPath: ensurePersistentThemeIcon('kurimanju'),
+        description: '쿠리만쥬 테마로 먼작귀 시메지 실행'
+      },
+      {
+        lnkPath: path.join(destDir, '먼작귀 시메지 (랏코 스승님).lnk'),
+        targetPath: launch.targetPath,
+        args: `${launch.baseArgs}--theme=rakko`.trim(),
+        workingDir: launch.workingDir,
+        iconPath: ensurePersistentThemeIcon('rakko'),
+        description: '랏코 스승님 테마로 먼작귀 시메지 실행'
+      }
+    );
+  }
+
+  const res = await createShortcutsByItems(items);
+  if (res.ok && mode === 'appdir-all') {
+    try { await shell.openPath(launch.appDir); } catch (_) {}
+  }
+  return {
+    ok: res.ok,
+    error: res.error,
+    files: items.map((i) => i.lnkPath),
+    dir: path.dirname(items[0].lnkPath)
+  };
+}
+
+function syncDefaultDesktopShortcutIfExists(theme) {
+  try {
+    const defaultLnk = path.join(app.getPath('desktop'), '먼작귀 시메지.lnk');
+    if (fs.existsSync(defaultLnk)) {
+      createThemeShortcuts({ mode: 'desktop-single', theme }).catch(() => {});
+    }
+  } catch (_) {}
 }
 
 function startWindowTracker() {
@@ -158,14 +394,17 @@ function getVirtualScreenBounds() {
 
 function createWindow() {
   const vBounds = getVirtualScreenBounds();
-  const appIcon = path.join(__dirname, 'assets', 'icon.png');
+  const { theme: initialTheme } = getInitialThemeInfo();
+  const { icoPath, pngPath } = getThemeIconPaths(initialTheme);
+  const winIconPath = fs.existsSync(icoPath) ? icoPath : (fs.existsSync(pngPath) ? pngPath : null);
 
   mainWindow = new BrowserWindow({
     x: vBounds.x,
     y: vBounds.y,
     width: vBounds.width,
     height: vBounds.height,
-    icon: fs.existsSync(appIcon) ? appIcon : undefined,
+    title: initialTheme === 'rakko' ? '랏코 스승님 시메지 타이머' : '쿠리만쥬 시메지 타이머',
+    icon: winIconPath || undefined,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
@@ -199,8 +438,12 @@ function createWindow() {
   mainWindow.loadFile('index.html');
 
   try {
-    tray = new Tray(createTrayIcon());
-    tray.setToolTip('쿠리만쥬 시메지 타이머 (밤만쥬 선배)');
+    tray = new Tray(createTrayIcon(initialTheme));
+    tray.setToolTip(
+      initialTheme === 'rakko'
+        ? '랏코 스승님 시메지 타이머 ⚔️'
+        : '쿠리만쥬 시메지 타이머 (밤만쥬 선배) 🌰'
+    );
     const contextMenu = Menu.buildFromTemplate([
       {
         label: '🌰 타이머 설정창 열기/닫기',
@@ -237,6 +480,23 @@ function createWindow() {
       {
         label: '🔽 상단 미니바 보이기/숨기기 (쿠리만쥬 더블클릭도 지원)',
         click: () => mainWindow?.webContents.send('app-command', 'toggle-mini-hud')
+      },
+      {
+        label: '🔗 바로가기 아이콘 만들기',
+        submenu: [
+          {
+            label: '🖥️ 바탕화면에 현재 캐릭터 바로가기 만들기',
+            click: () => mainWindow?.webContents.send('app-command', 'create-shortcut-desktop')
+          },
+          {
+            label: '📂 실행 폴더에 캐릭터별 바로가기 모두 만들기',
+            click: () => mainWindow?.webContents.send('app-command', 'create-shortcuts-all')
+          }
+        ]
+      },
+      {
+        label: `🔄 업데이트 확인 (v${app.getVersion()})`,
+        click: () => mainWindow?.webContents.send('app-command', 'check-updates')
       },
       { type: 'separator' },
       {
@@ -320,10 +580,105 @@ app.whenReady().then(() => {
     return true;
   });
 
+  ipcMain.handle('get-initial-theme', () => {
+    return getInitialThemeInfo();
+  });
+
+  ipcMain.on('set-app-theme', (_event, theme) => {
+    const validTheme = theme === 'rakko' ? 'rakko' : 'kurimanju';
+    writeAppSettings({ theme: validTheme });
+    applyMainWindowAndTrayTheme(validTheme);
+    syncDefaultDesktopShortcutIfExists(validTheme);
+  });
+
+  ipcMain.handle('create-shortcuts', async (_event, options) => {
+    return createThemeShortcuts(options || {});
+  });
+
+  ipcMain.handle('get-app-version', () => {
+    return app.getVersion();
+  });
+
+  ipcMain.handle('check-for-updates', async () => {
+    if (!app.isPackaged) {
+      return { ok: false, devMode: true, version: app.getVersion(), status: 'dev' };
+    }
+    if (!autoUpdater) {
+      return { ok: false, error: '업데이터 모듈을 찾을 수 없습니다.', version: app.getVersion() };
+    }
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      return { ok: true, version: result?.updateInfo?.version || app.getVersion() };
+    } catch (e) {
+      return { ok: false, error: e?.message || '업데이트 확인 실패', version: app.getVersion() };
+    }
+  });
+
+  ipcMain.on('install-update-now', () => {
+    if (autoUpdater && app.isPackaged) {
+      try {
+        autoUpdater.quitAndInstall(false, true);
+      } catch (_) {}
+    }
+  });
+
+  setupAutoUpdater();
+
   ipcMain.on('quit-app', () => {
     app.quit();
   });
 });
+
+function sendUpdateStatus(payload) {
+  latestUpdateState = { ...latestUpdateState, ...payload };
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', latestUpdateState);
+  }
+}
+
+function setupAutoUpdater() {
+  if (!autoUpdater) return;
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('checking-for-update', () => {
+    sendUpdateStatus({ status: 'checking', version: app.getVersion() });
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    sendUpdateStatus({ status: 'available', version: info?.version || '' });
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    sendUpdateStatus({ status: 'latest', version: app.getVersion() });
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    sendUpdateStatus({
+      status: 'downloading',
+      percent: Math.round(progress?.percent || 0)
+    });
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    sendUpdateStatus({ status: 'downloaded', version: info?.version || '' });
+  });
+
+  autoUpdater.on('error', (err) => {
+    sendUpdateStatus({ status: 'error', message: err?.message || '업데이트 확인 오류' });
+  });
+
+  if (app.isPackaged) {
+    setTimeout(() => {
+      autoUpdater.checkForUpdates().catch(() => {});
+    }, 4500);
+
+    setInterval(() => {
+      autoUpdater.checkForUpdates().catch(() => {});
+    }, 4 * 60 * 60 * 1000);
+  }
+}
 
 app.on('before-quit', () => {
   if (trackerProc) {

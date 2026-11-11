@@ -12,11 +12,13 @@
   const btnOpenBagHud = document.getElementById('btn-open-bag-hud');
   const btnMinimizeHud = document.getElementById('btn-minimize-hud');
   const miniHudCollapsed = document.getElementById('mini-hud-collapsed');
+  const collapsedIconImg = document.querySelector('.collapsed-icon');
   const collapsedTime = document.getElementById('collapsed-time');
   const btnQuit = document.getElementById('btn-quit');
 
   const setupPanel = document.getElementById('timer-setup-panel');
   const panelHeader = setupPanel?.querySelector('.panel-header');
+  const headerIconImg = document.querySelector('.header-icon-img');
   const panelTitleH1 = document.querySelector('.panel-title-row h1');
   const panelSubtitleP = document.querySelector('.panel-title-row .subtitle');
   const btnMinimizePanel = document.getElementById('btn-Minimize-panel');
@@ -29,6 +31,8 @@
   const btnThemeRakko = document.getElementById('btn-theme-rakko');
   const btnPanelToggleFriend = document.getElementById('btn-panel-toggle-friend');
   const friendStatusDesc = document.getElementById('friend-status-desc');
+  const btnShortcutDesktop = document.getElementById('btn-shortcut-desktop');
+  const btnShortcutAll = document.getElementById('btn-shortcut-all');
 
   const presetBtns = document.querySelectorAll('.preset-btn');
   const inputMinutes = document.getElementById('input-minutes');
@@ -66,6 +70,15 @@
   const btnToastBreak = document.getElementById('btn-toast-break');
   const btnToastBag = document.getElementById('btn-toast-bag');
   const btnToastDismiss = document.getElementById('btn-toast-dismiss');
+
+  const appVersionText = document.getElementById('app-version-text');
+  const btnCheckUpdate = document.getElementById('btn-check-update');
+  const btnInstallUpdate = document.getElementById('btn-install-update');
+  const updateReadyToast = document.getElementById('update-ready-toast');
+  const updateToastTitle = document.getElementById('update-toast-title');
+  const updateToastDesc = document.getElementById('update-toast-desc');
+  const btnUpdateRestart = document.getElementById('btn-update-restart');
+  const btnUpdateLater = document.getElementById('btn-update-later');
 
   // Web Audio Cute Sound Effects
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2051,21 +2064,35 @@
   // =========================================================
   function updateThemeAndFriendUI() {
     const isRakko = currentMainChar === 'rakko';
+    const iconSrc = isRakko ? 'assets/rakko.png' : 'assets/icon.png';
+
     document.body.classList.toggle('theme-rakko', isRakko);
+    document.title = isRakko ? '랏코 스승님 시메지 타이머' : '쿠리만쥬 시메지 타이머';
 
     btnThemeKurimanju?.classList.toggle('active', !isRakko);
     btnThemeRakko?.classList.toggle('active', isRakko);
 
     if (hudBadgeEl) {
-      hudBadgeEl.textContent = isRakko ? '🦦 랏코 스승님' : '🌰 쿠리만쥬';
+      hudBadgeEl.innerHTML = `<img src="${iconSrc}" class="badge-icon" alt="" /> ${isRakko ? '랏코 스승님' : '쿠리만쥬'}`;
+    }
+    if (collapsedIconImg) {
+      collapsedIconImg.setAttribute('src', iconSrc);
+    }
+    if (headerIconImg) {
+      headerIconImg.setAttribute('src', iconSrc);
     }
     if (panelTitleH1) {
-      panelTitleH1.textContent = isRakko ? '🦦 랏코 스승님의 모험 타이머' : '🌰 쿠리만쥬 뽀모도로 타이머';
+      panelTitleH1.textContent = isRakko ? '랏코 스승님의 모험 타이머' : '쿠리만쥬 뽀모도로 타이머';
     }
     if (panelSubtitleP) {
       panelSubtitleP.textContent = isRakko
         ? '스승님과 함께하는 고요하고 늠름한 집중 시간 ⚔️'
         : '퇴근 후 시원한 한 잔을 기다리며 일하는 미니 시메지 타이머 🍺';
+    }
+    if (btnStartTimer && !isTimerRunning) {
+      btnStartTimer.textContent = isRakko
+        ? '▶ 타이머 시작 & 랏코 스승님 소환'
+        : '▶ 타이머 시작 & 쿠리만쥬 소환';
     }
 
     const friendChar = isRakko ? 'kurimanju' : 'rakko';
@@ -2088,7 +2115,7 @@
     }
   }
 
-  function applyCharacterTheme(charType, save = true) {
+  function applyCharacterTheme(charType, save = true, syncNative = true) {
     if (!charConfigs[charType]) return;
     currentMainChar = charType;
     mainActor.charType = charType;
@@ -2102,10 +2129,13 @@
     updateActorSpriteFrame(mainActor);
     updateThemeAndFriendUI();
 
-    const cfg = charConfigs[charType];
-    showActorSpeech(mainActor, cfg.quotes?.themeSelect || `${cfg.name} 모드로 전환! ✨`, 2600);
+    if (syncNative) {
+      window.electronAPI?.setAppTheme?.(charType);
+    }
 
+    const cfg = charConfigs[charType];
     if (save) {
+      showActorSpeech(mainActor, cfg.quotes?.themeSelect || `${cfg.name} 모드로 전환! ✨`, 2600);
       try {
         localStorage.setItem('kurimanju_main_char', charType);
       } catch (_) {}
@@ -2137,10 +2167,41 @@
     } catch (_) {}
   }
 
+  async function handleCreateShortcuts(mode) {
+    if (!window.electronAPI?.createShortcuts) return;
+    if (btnShortcutDesktop) btnShortcutDesktop.disabled = true;
+    if (btnShortcutAll) btnShortcutAll.disabled = true;
+
+    try {
+      const res = await window.electronAPI.createShortcuts({
+        mode,
+        theme: currentMainChar
+      });
+      if (res && res.ok) {
+        playHaaFanfare();
+        if (mode === 'desktop-single') {
+          const charName = currentMainChar === 'rakko' ? '랏코 스승님' : '쿠리만쥬';
+          showActorSpeech(mainActor, `바탕화면에 「${charName}」 바로가기 생성 완료! 🖥️✨`, 3400);
+        } else {
+          showActorSpeech(mainActor, '실행 폴더에 쿠리만쥬·랏코 바로가기 모두 생성 완료! 📂✨', 3600);
+        }
+      } else {
+        showActorSpeech(mainActor, `바로가기 생성 실패 💦 (${res?.error || '오류'})`, 3200);
+      }
+    } catch (_) {
+      showActorSpeech(mainActor, '바로가기 생성 중 오류가 발생했어요 💦', 3200);
+    } finally {
+      if (btnShortcutDesktop) btnShortcutDesktop.disabled = false;
+      if (btnShortcutAll) btnShortcutAll.disabled = false;
+    }
+  }
+
   btnThemeKurimanju?.addEventListener('click', () => applyCharacterTheme('kurimanju'));
   btnThemeRakko?.addEventListener('click', () => applyCharacterTheme('rakko'));
   btnToggleFriend?.addEventListener('click', () => toggleFriendActor());
   btnPanelToggleFriend?.addEventListener('click', () => toggleFriendActor());
+  btnShortcutDesktop?.addEventListener('click', () => handleCreateShortcuts('desktop-single'));
+  btnShortcutAll?.addEventListener('click', () => handleCreateShortcuts('appdir-all'));
 
   btnToggleWander?.addEventListener('click', () => {
     setWanderMode(!isWanderEnabled);
@@ -2175,17 +2236,123 @@
       toggleFriendActor();
     } else if (cmd === 'toggle-theme') {
       applyCharacterTheme(currentMainChar === 'kurimanju' ? 'rakko' : 'kurimanju');
+    } else if (cmd === 'create-shortcut-desktop') {
+      handleCreateShortcuts('desktop-single');
+    } else if (cmd === 'create-shortcuts-all') {
+      handleCreateShortcuts('appdir-all');
+    } else if (cmd === 'check-updates') {
+      triggerManualUpdateCheck();
     }
   });
 
-  // 초기 시작 세팅
-  applyCharacterTheme(currentMainChar, false);
+  // =========================================================
+  // 8. 자동 업데이트 UI 및 알림 연동
+  // =========================================================
+  let currentAppVersion = '1.0.0';
+
+  function renderUpdateState(data) {
+    if (!data) return;
+    const verPrefix = `v${currentAppVersion}`;
+
+    if (data.status === 'checking') {
+      if (appVersionText) appVersionText.textContent = `${verPrefix} · 새 버전 확인 중...`;
+      if (btnCheckUpdate) btnCheckUpdate.disabled = true;
+    } else if (data.status === 'available') {
+      if (appVersionText) appVersionText.textContent = `${verPrefix} · v${data.version} 발견! 다운로드 시작`;
+      showActorSpeech(mainActor, `새 버전(v${data.version})을 발견해서 받고 있어! 📥`, 3000);
+    } else if (data.status === 'downloading') {
+      if (appVersionText) appVersionText.textContent = `${verPrefix} · 다운로드 중 (${data.percent || 0}%)`;
+    } else if (data.status === 'downloaded') {
+      if (appVersionText) appVersionText.textContent = `v${data.version} 다운로드 완료!`;
+      if (btnCheckUpdate) {
+        btnCheckUpdate.disabled = false;
+        btnCheckUpdate.classList.add('hidden');
+      }
+      btnInstallUpdate?.classList.remove('hidden');
+
+      if (updateToastTitle) {
+        updateToastTitle.textContent = `✨ 새 버전(v${data.version}) 준비 완료!`;
+      }
+      if (updateToastDesc) {
+        updateToastDesc.textContent = '지금 재시작하면 자동으로 최신 버전이 적용됩니다.';
+      }
+      updateReadyToast?.classList.remove('hidden');
+      showActorSpeech(mainActor, `업데이트(v${data.version}) 준비 끝! 재시작할까? 🚀`, 4000);
+      playHaaFanfare();
+    } else if (data.status === 'latest') {
+      if (appVersionText) appVersionText.textContent = `${verPrefix} · 최신 버전입니다`;
+      if (btnCheckUpdate) btnCheckUpdate.disabled = false;
+    } else if (data.status === 'error') {
+      if (appVersionText) appVersionText.textContent = `${verPrefix} · 확인 실패`;
+      if (btnCheckUpdate) btnCheckUpdate.disabled = false;
+    }
+  }
+
+  async function triggerManualUpdateCheck() {
+    if (!window.electronAPI?.checkForUpdates) return;
+    if (btnCheckUpdate) btnCheckUpdate.disabled = true;
+    if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 확인 중...`;
+
+    try {
+      const res = await window.electronAPI.checkForUpdates();
+      if (res?.devMode) {
+        if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 개발 모드`;
+        showActorSpeech(mainActor, '설치(.exe) 후에는 자동으로 최신 버전을 받아와요! ✨', 3200);
+      } else if (res && !res.ok) {
+        if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 확인 실패`;
+        showActorSpeech(mainActor, '업데이트 서버를 아직 찾지 못했어요 (GitHub Release 확인) 💦', 3200);
+      } else if (res && res.ok && res.version === currentAppVersion) {
+        if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 최신 버전입니다`;
+        showActorSpeech(mainActor, `현재 최신 버전(v${currentAppVersion})을 사용 중이야! 🌟`, 2600);
+      }
+    } catch (_) {
+      if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 확인 실패`;
+    } finally {
+      if (btnCheckUpdate) btnCheckUpdate.disabled = false;
+    }
+  }
+
+  btnCheckUpdate?.addEventListener('click', () => triggerManualUpdateCheck());
+  btnInstallUpdate?.addEventListener('click', () => window.electronAPI?.installUpdateNow());
+  btnUpdateRestart?.addEventListener('click', () => window.electronAPI?.installUpdateNow());
+  btnUpdateLater?.addEventListener('click', () => {
+    updateReadyToast?.classList.add('hidden');
+    showActorSpeech(mainActor, '알겠어! 프로그램 종료 시 자동으로 적용될 거야~ 🌰', 2800);
+  });
+
+  window.electronAPI?.onUpdateStatus?.((data) => renderUpdateState(data));
+
+  (async function initAppVersion() {
+    try {
+      const ver = await window.electronAPI?.getAppVersion?.();
+      if (ver) {
+        currentAppVersion = ver;
+        if (appVersionText) appVersionText.textContent = `v${ver}`;
+      }
+    } catch (_) {}
+  })();
+
+  // 초기 시작 세팅 (동기 선적용 후 CLI 인자/메인 프로세스 동기화)
+  applyCharacterTheme(currentMainChar, false, false);
   if (isFriendActive) {
     friendActor.charType = currentMainChar === 'kurimanju' ? 'rakko' : 'kurimanju';
     spawnActor(friendActor, false);
     friendActorEl?.classList.remove('hidden');
   }
   updateThemeAndFriendUI();
+
+  (async function syncInitialTheme() {
+    try {
+      const info = await window.electronAPI?.getInitialTheme?.();
+      if (info && info.fromCli && charConfigs[info.theme]) {
+        currentMainChar = info.theme;
+        try {
+          localStorage.setItem('kurimanju_main_char', info.theme);
+        } catch (_) {}
+      }
+    } catch (_) {}
+    applyCharacterTheme(currentMainChar, false, true);
+  })();
   initSpritesAndAutoAlign();
   loadBookmarks();
   updateTimerDisplays();
