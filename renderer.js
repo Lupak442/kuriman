@@ -677,10 +677,44 @@
     return typeof fallback === 'function' ? fallback(...args) : fallback;
   }
 
+  function updateActorSpeechPosition(act) {
+    if (!act || !act.speechEl || act.speechEl.classList.contains('hidden')) return;
+
+    const speechW = act.speechEl.offsetWidth || 120;
+    const speechH = act.speechEl.offsetHeight || 28;
+    const actorCenterX = act.x + act.width * 0.5;
+    const margin = 8;
+
+    // 1) 좌·우 사이드 화면 밖 잘림 방지
+    let shiftX = 0;
+    const idealLeft = actorCenterX - speechW * 0.5;
+    const idealRight = actorCenterX + speechW * 0.5;
+    if (idealLeft < margin) {
+      shiftX = margin - idealLeft;
+    } else if (idealRight > window.innerWidth - margin) {
+      shiftX = (window.innerWidth - margin) - idealRight;
+    }
+
+    const maxTailOffset = Math.max(0, speechW * 0.5 - 12);
+    const tailOffset = Math.max(-maxTailOffset, Math.min(maxTailOffset, -shiftX));
+    act.speechEl.style.setProperty('--speech-shift-x', `${Math.round(shiftX)}px`);
+    act.speechEl.style.setProperty('--tail-offset', `${Math.round(tailOffset)}px`);
+
+    // 2) 천장/상단 근처에서는 말풍선을 캐릭터 아래쪽에 표시해 잘리지 않게 유지
+    const topSpaceNeeded = speechH - 2;
+    const hasBelowSpace = act.y + act.height + speechH < window.innerHeight - 6;
+    if (act.y < topSpaceNeeded && hasBelowSpace) {
+      act.speechEl.classList.add('speech-below');
+    } else {
+      act.speechEl.classList.remove('speech-below');
+    }
+  }
+
   function showActorSpeech(act, text, durationMs = 2600) {
     if (!isSpeechEnabled || !act || !act.speechEl) return;
     act.speechEl.textContent = text;
     act.speechEl.classList.remove('hidden');
+    updateActorSpeechPosition(act);
     if (act.speechTimeout) clearTimeout(act.speechTimeout);
     if (durationMs > 0) {
       act.speechTimeout = setTimeout(() => {
@@ -1405,6 +1439,7 @@
     if (act.wrapperEl) {
       act.wrapperEl.style.transform = `scaleX(${scaleX}) rotate(${Math.round(act.tiltDeg)}deg)`;
     }
+    updateActorSpeechPosition(act);
   }
 
   function updatePhysics() {
