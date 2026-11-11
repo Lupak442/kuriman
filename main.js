@@ -133,6 +133,70 @@ function createTrayIcon(theme = 'kurimanju') {
   return nativeImage.createFromDataURL(`data:image/svg+xml;base64,${base64}`);
 }
 
+function buildTrayMenu(theme = 'kurimanju') {
+  const isRakko = theme === 'rakko';
+  return Menu.buildFromTemplate([
+    {
+      label: isRakko ? '🦦 타이머 설정창 열기/닫기' : '🌰 타이머 설정창 열기/닫기',
+      click: () => mainWindow?.webContents.send('app-command', 'toggle-timer-panel')
+    },
+    {
+      label: '🐾 자유 산책 / 🪑 얌전 모드 전환',
+      click: () => mainWindow?.webContents.send('app-command', 'toggle-wander-mode')
+    },
+    {
+      label: '👥 친구 놀러오기 / 돌려보내기 (2마리 동시 산책)',
+      click: () => mainWindow?.webContents.send('app-command', 'toggle-friend')
+    },
+    {
+      label: '✨ 테마 전환 (쿠리만쥬 ↔ 랏코 스승님)',
+      click: () => mainWindow?.webContents.send('app-command', 'toggle-theme')
+    },
+    {
+      label: '🪂 캐릭터 위에서 다시 소환',
+      click: () => mainWindow?.webContents.send('app-command', 'respawn-kurimanju')
+    },
+    {
+      label: isRakko ? '🏎️ 즉시 「하아아ー!!」 보기' : '🍺 즉시 「하아ー(ハーッ!)」 보기',
+      click: () => mainWindow?.webContents.send('app-command', 'trigger-haa')
+    },
+    {
+      label: isRakko ? '🔑 차고지(북마크) 열기' : '🎒 가방(북마크) 열기',
+      click: () => mainWindow?.webContents.send('app-command', 'open-bag')
+    },
+    {
+      label: '💬 말풍선 대사 켜기/끄기',
+      click: () => mainWindow?.webContents.send('app-command', 'toggle-speech')
+    },
+    {
+      label: '🔽 상단 미니바 보이기/숨기기 (캐릭터 더블클릭도 지원)',
+      click: () => mainWindow?.webContents.send('app-command', 'toggle-mini-hud')
+    },
+    {
+      label: '🔗 바로가기 아이콘 만들기',
+      submenu: [
+        {
+          label: '🖥️ 바탕화면에 현재 캐릭터 바로가기 만들기',
+          click: () => mainWindow?.webContents.send('app-command', 'create-shortcut-desktop')
+        },
+        {
+          label: '📂 실행 폴더에 캐릭터별 바로가기 모두 만들기',
+          click: () => mainWindow?.webContents.send('app-command', 'create-shortcuts-all')
+        }
+      ]
+    },
+    {
+      label: `🔄 업데이트 확인 (v${app.getVersion()})`,
+      click: () => mainWindow?.webContents.send('app-command', 'check-updates')
+    },
+    { type: 'separator' },
+    {
+      label: '❌ 종료하기',
+      click: () => app.quit()
+    }
+  ]);
+}
+
 function applyMainWindowAndTrayTheme(theme = 'kurimanju') {
   const validTheme = theme === 'rakko' ? 'rakko' : 'kurimanju';
   const isRakko = validTheme === 'rakko';
@@ -152,6 +216,7 @@ function applyMainWindowAndTrayTheme(theme = 'kurimanju') {
   if (tray && !tray.isDestroyed()) {
     tray.setImage(createTrayIcon(validTheme));
     tray.setToolTip(isRakko ? '랏코 스승님 시메지 타이머 ⚔️' : '쿠리만쥬 시메지 타이머 (밤만쥬 선배) 🌰');
+    tray.setContextMenu(buildTrayMenu(validTheme));
   }
 }
 
@@ -444,66 +509,7 @@ function createWindow() {
         ? '랏코 스승님 시메지 타이머 ⚔️'
         : '쿠리만쥬 시메지 타이머 (밤만쥬 선배) 🌰'
     );
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: '🌰 타이머 설정창 열기/닫기',
-        click: () => mainWindow?.webContents.send('app-command', 'toggle-timer-panel')
-      },
-      {
-        label: '🐾 자유 산책 / 🪑 얌전 모드 전환',
-        click: () => mainWindow?.webContents.send('app-command', 'toggle-wander-mode')
-      },
-      {
-        label: '👥 친구 놀러오기 / 돌려보내기 (2마리 동시 산책)',
-        click: () => mainWindow?.webContents.send('app-command', 'toggle-friend')
-      },
-      {
-        label: '✨ 테마 전환 (쿠리만쥬 ↔ 랏코 스승님)',
-        click: () => mainWindow?.webContents.send('app-command', 'toggle-theme')
-      },
-      {
-        label: '🪂 캐릭터 위에서 다시 소환',
-        click: () => mainWindow?.webContents.send('app-command', 'respawn-kurimanju')
-      },
-      {
-        label: '🍺 즉시 「하아ー(ハーッ!)」 보기',
-        click: () => mainWindow?.webContents.send('app-command', 'trigger-haa')
-      },
-      {
-        label: '🎒 가방(북마크) 열기',
-        click: () => mainWindow?.webContents.send('app-command', 'open-bag')
-      },
-      {
-        label: '💬 말풍선 대사 켜기/끄기',
-        click: () => mainWindow?.webContents.send('app-command', 'toggle-speech')
-      },
-      {
-        label: '🔽 상단 미니바 보이기/숨기기 (쿠리만쥬 더블클릭도 지원)',
-        click: () => mainWindow?.webContents.send('app-command', 'toggle-mini-hud')
-      },
-      {
-        label: '🔗 바로가기 아이콘 만들기',
-        submenu: [
-          {
-            label: '🖥️ 바탕화면에 현재 캐릭터 바로가기 만들기',
-            click: () => mainWindow?.webContents.send('app-command', 'create-shortcut-desktop')
-          },
-          {
-            label: '📂 실행 폴더에 캐릭터별 바로가기 모두 만들기',
-            click: () => mainWindow?.webContents.send('app-command', 'create-shortcuts-all')
-          }
-        ]
-      },
-      {
-        label: `🔄 업데이트 확인 (v${app.getVersion()})`,
-        click: () => mainWindow?.webContents.send('app-command', 'check-updates')
-      },
-      { type: 'separator' },
-      {
-        label: '❌ 종료하기',
-        click: () => app.quit()
-      }
-    ]);
+    const contextMenu = buildTrayMenu(initialTheme);
     tray.setContextMenu(contextMenu);
     tray.on('click', () => {
       mainWindow?.webContents.send('app-command', 'toggle-timer-panel');

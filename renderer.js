@@ -277,7 +277,7 @@
         attachToWindow(null, 'screen');
         actor.vy = 0.5;
         setActorState('fall');
-        showSpeech('미니바가 숨겨져서 아래로 폴짝! 🪂', 1800);
+        showSpeech(resolveQuote(mainActor, 'hudHideDrop', '미니바가 숨겨져서 아래로 폴짝! 🪂'), 1800);
       }
     } else {
       miniHud?.classList.remove('hidden');
@@ -288,7 +288,7 @@
   btnMinimizeHud?.addEventListener('click', (e) => {
     e.stopPropagation();
     toggleMinimizeHud(true);
-    showSpeech('타이틀바 숨겼어! 나를 더블클릭하면 다시 나와~ 🌰', 2800);
+    showSpeech(resolveQuote(mainActor, 'hudHidden', '타이틀바 숨겼어! 나를 더블클릭하면 다시 나와~ 🌰'), 2800);
   });
 
   // 캐릭터를 더블클릭하면 미니 타이틀바가 뿅! 하고 나타나거나 숨겨집니다
@@ -297,7 +297,7 @@
     e.stopPropagation();
     toggleMinimizeHud(!isHudMinimized);
     if (!isHudMinimized) {
-      showSpeech('타이틀바 짠! ✨', 2000);
+      showSpeech(resolveQuote(mainActor, 'hudShow', '타이틀바 짠! ✨'), 2000);
     }
   });
 
@@ -306,14 +306,14 @@
     e.stopPropagation();
     toggleMinimizeHud(!isHudMinimized);
     if (!isHudMinimized) {
-      showActorSpeech(friendActor, '타이틀바를 불렀다! ⚔️', 2000);
+      showActorSpeech(friendActor, resolveQuote(friendActor, 'hudShowFriend', '타이틀바를 불렀다! ✨'), 2000);
     }
   });
 
   // 축소 칩 클릭 시에도 복원 지원
   miniHudCollapsed?.addEventListener('click', () => {
     toggleMinimizeHud(false);
-    showSpeech('타이틀바 다시 열었어! 🌰', 1800);
+    showSpeech(resolveQuote(mainActor, 'hudRestoreChip', '타이틀바 다시 열었어! 🌰'), 1800);
   });
 
   // =========================================================
@@ -487,7 +487,7 @@
         if (!act.isDragging && act.state !== 'fall') {
           act.vy = 0.5;
           setSingleActorState(act, 'fall');
-          showActorSpeech(act, '앗! 창이 사라졌다~! 🪂', 1800);
+          showActorSpeech(act, resolveQuote(act, 'winVanish', '앗! 창이 사라졌다~! 🪂'), 1800);
         }
       } else if (act.attachedHwnd && prevAttached && act.lastWinPos) {
         // 올라타 있는 창을 마우스로 움직이면 액터도 창을 따라 같이 이동!
@@ -519,7 +519,7 @@
   let calmTimer = 300;   // 약 5초 (60fps 기준 300프레임)
 
   // 1. 일과 스토리: idle(5초) -> bag(5초) -> snack(5초) -> haa(5초) -> sleep(5초)
-  const CALM_STORY_STEPS = [
+  const DEFAULT_CALM_STORY_STEPS = [
     { state: 'idle', duration: 300, speech: '주인 일하네? 👀' },
     { state: 'bag', duration: 300, speech: '나도 일해야지~ 🎒' },
     { state: 'snack', duration: 300, speech: '나는 술 자격증 보유자 🍶' },
@@ -528,12 +528,24 @@
   ];
 
   // 2. 심심 루틴: land(바닥에 철퍼덕 엎드림)와 idle을 5초씩 번갈아가며 귀엽게 심심해하는 액션!
-  const CALM_BORED_STEPS = [
+  const DEFAULT_CALM_BORED_STEPS = [
     { state: 'land', duration: 300, speech: '바닥에 철퍼덕.. 심심해 놀아줘어~ 🥺' },
     { state: 'idle', duration: 300, speech: '나 돌아다닐래~ 아니면 옮겨줘~~' },
     { state: 'land', duration: 300, speech: '뒹굴뒹굴.. 심심해서 납작해지는 중 🥱' },
     { state: 'idle', duration: 300, speech: '일 언제 끝나..? 지켜보는 중 👀' }
   ];
+
+  function getCalmSteps(routineNum) {
+    const quotes = getActorQuotes(mainActor);
+    if (routineNum === 1) {
+      return Array.isArray(quotes.calmStory) && quotes.calmStory.length > 0
+        ? quotes.calmStory
+        : DEFAULT_CALM_STORY_STEPS;
+    }
+    return Array.isArray(quotes.calmBored) && quotes.calmBored.length > 0
+      ? quotes.calmBored
+      : DEFAULT_CALM_BORED_STEPS;
+  }
 
   function runCalmTick() {
     if (actor.isDragging || actor.state === 'fall' || actor.state === 'grabbed') return;
@@ -548,22 +560,15 @@
 
     calmTimer--;
     if (calmTimer <= 0) {
-      if (calmRoutine === 1) {
-        calmStep++;
-        if (calmStep >= CALM_STORY_STEPS.length) {
-          calmRoutine = 2;
-          calmStep = 0;
-        }
-      } else {
-        calmStep++;
-        if (calmStep >= CALM_BORED_STEPS.length) {
-          calmRoutine = 1;
-          calmStep = 0;
-        }
+      const prevList = getCalmSteps(calmRoutine);
+      calmStep++;
+      if (calmStep >= prevList.length) {
+        calmRoutine = calmRoutine === 1 ? 2 : 1;
+        calmStep = 0;
       }
 
-      const stepList = calmRoutine === 1 ? CALM_STORY_STEPS : CALM_BORED_STEPS;
-      const current = stepList[calmStep];
+      const stepList = getCalmSteps(calmRoutine);
+      const current = stepList[calmStep] || stepList[0];
       setActorState(current.state, current.duration);
       calmTimer = current.duration;
       if (current.speech) showSpeech(current.speech, 2200);
@@ -580,12 +585,12 @@
     updateWanderModeUI();
 
     if (isWanderEnabled) {
-      if (notify) showSpeech('자유 산책 시작~! 🐾', 2000);
+      if (notify) showSpeech(resolveQuote(mainActor, 'wanderStart', '자유 산책 시작~! 🐾'), 2000);
       pickNextGroundBehavior();
     } else {
       calmRoutine = 1;
       calmStep = 0;
-      const initial = CALM_STORY_STEPS[0];
+      const initial = getCalmSteps(1)[0];
       setActorState(initial.state, initial.duration);
       calmTimer = initial.duration;
       if (notify) showSpeech(initial.speech, 2200);
@@ -648,13 +653,29 @@
       actorSpeech.classList.add('hidden');
       if (actor.speechTimeout) clearTimeout(actor.speechTimeout);
     } else if (notify) {
-      showSpeech('말풍선 켰어! 🌰', 2000);
+      showSpeech(resolveQuote(mainActor, 'speechOn', '말풍선 켰어! 🌰'), 2000);
     }
   }
 
   btnToggleSpeech?.addEventListener('click', () => {
     setSpeechEnabled(!isSpeechEnabled);
   });
+
+  function getActorConfig(act = mainActor) {
+    const type = act?.charType || currentMainChar || 'kurimanju';
+    return charConfigs[type] || charConfigs.kurimanju || {};
+  }
+
+  function getActorQuotes(act = mainActor) {
+    return getActorConfig(act).quotes || {};
+  }
+
+  function resolveQuote(act, key, fallback, ...args) {
+    const val = getActorQuotes(act)?.[key];
+    if (typeof val === 'function') return val(...args);
+    if (typeof val === 'string') return val;
+    return typeof fallback === 'function' ? fallback(...args) : fallback;
+  }
 
   function showActorSpeech(act, text, durationMs = 2600) {
     if (!isSpeechEnabled || !act || !act.speechEl) return;
@@ -830,7 +851,13 @@
     const drawW = cropW * scale;
     const drawH = cropH * scale;
 
-    const destX = Math.round((canvasW - drawW) / 2 + (frameMeta.offsetX || 0));
+    let destX;
+    if (stateName === 'climb') {
+      // 등반 스프라이트는 손·발 끝(오른쪽 끝)을 캔버스 우측 끝 4px 안쪽에 맞춰 벽 테두리에 딱 닿게 정렬
+      destX = Math.round(canvasW - 4 - drawW + (frameMeta.offsetX || 0));
+    } else {
+      destX = Math.round((canvasW - drawW) / 2 + (frameMeta.offsetX || 0));
+    }
     let destY;
 
     if (stateName === 'grabbed') {
@@ -1050,7 +1077,7 @@
           act.vx = 0;
           act.vy = 0;
           setSingleActorState(act, isWanderEnabled ? 'land' : 'idle', 20);
-          showActorSpeech(act, quotes.land || '미니창 위에 착지! 🌰', 2000);
+          showActorSpeech(act, resolveQuote(act, 'landMiniHud', '미니창 위에 착지! 🌰'), 2000);
           return;
         }
       }
@@ -1083,7 +1110,7 @@
         act.vx = 0;
         act.vy = 0;
         setSingleActorState(act, isWanderEnabled ? 'land' : 'idle', 22);
-        showActorSpeech(act, `${getFriendlyAppName(landedOnWin)} 위에 착지! ✨`, 2200);
+        showActorSpeech(act, resolveQuote(act, 'landOnWin', (n) => `${n} 위에 착지! ✨`, getFriendlyAppName(landedOnWin)), 2200);
       } else {
         // 화면 좌우 벽 반사
         if (act.x <= 0) {
@@ -1151,7 +1178,7 @@
               act.y = hudRect.bottom + 6;
             }
             setSingleActorState(act, 'fall');
-            showActorSpeech(act, '미니창에서 대각선 폴짝~! 🪂', 1800);
+            showActorSpeech(act, resolveQuote(act, 'jumpMiniHud', '미니창에서 대각선 폴짝~! 🪂'), 1800);
           } else {
             act.dir = act.x <= minWalkX ? 1 : -1;
             act.x = Math.max(minWalkX, Math.min(maxWalkX, act.x));
@@ -1180,13 +1207,14 @@
             act.y = attachedWin.y + 12;
 
             setSingleActorState(act, 'fall');
-            showActorSpeech(act, '지붕 끝에서 대각선 폴짝~! 🪂', 2000);
+            showActorSpeech(act, resolveQuote(act, 'jump', '지붕 끝에서 대각선 폴짝~! 🪂'), 2000);
           } else if (r < 0.85) {
             act.wallSide = act.x <= minWalkX ? 'left' : 'right';
             act.surfaceType = 'win-wall';
             act.climbDir = 1;
+            act.x = getWindowWallX(act, attachedWin, maxX);
             setSingleActorState(act, 'climb', 9999);
-            showActorSpeech(act, `${getFriendlyAppName(attachedWin)} 벽 타고 내려가자~`, 2000);
+            showActorSpeech(act, resolveQuote(act, 'climbDownWin', (n) => `${n} 벽 타고 내려가자~`, getFriendlyAppName(attachedWin)), 2000);
           } else {
             act.dir = act.x <= minWalkX ? 1 : -1;
             act.x = Math.max(minWalkX, Math.min(maxWalkX, act.x));
@@ -1209,16 +1237,18 @@
               act.wallSide = 'left';
               act.dir = 1;
               act.climbDir = -1;
+              act.x = getWindowWallX(act, w, maxX);
               setSingleActorState(act, 'climb', 300);
-              showActorSpeech(act, `오! ${getFriendlyAppName(w)} 타고 올라가자! 🧗`, 2200);
+              showActorSpeech(act, resolveQuote(act, 'climbUpWin', (n) => `오! ${n} 타고 올라가자! 🧗`, getFriendlyAppName(w)), 2200);
               return;
             } else if (Math.abs(actorCenterX - rightWallX) < 14 && rightWallX < window.innerWidth - 30 && Math.random() < 0.45) {
               attachToWindow(act, w, 'win-wall');
               act.wallSide = 'right';
               act.dir = -1;
               act.climbDir = -1;
+              act.x = getWindowWallX(act, w, maxX);
               setSingleActorState(act, 'climb', 300);
-              showActorSpeech(act, `오! ${getFriendlyAppName(w)} 타고 올라가자! 🧗`, 2200);
+              showActorSpeech(act, resolveQuote(act, 'climbUpWin', (n) => `오! ${n} 타고 올라가자! 🧗`, getFriendlyAppName(w)), 2200);
               return;
             }
           }
@@ -1233,7 +1263,7 @@
             act.dir = -1;
             act.climbDir = -1;
             setSingleActorState(act, 'climb', 240 + Math.floor(Math.random() * 180));
-            showActorSpeech(act, '영차.. 모니터 벽 등반! 🧗', 2000);
+            showActorSpeech(act, resolveQuote(act, 'climbWallLeft', '영차.. 모니터 벽 등반! 🧗'), 2000);
           } else {
             act.dir = 1;
           }
@@ -1245,7 +1275,7 @@
             act.dir = 1;
             act.climbDir = -1;
             setSingleActorState(act, 'climb', 240 + Math.floor(Math.random() * 180));
-            showActorSpeech(act, '영차.. 올라가볼까 🧗', 2000);
+            showActorSpeech(act, resolveQuote(act, 'climbWallRight', '영차.. 올라가볼까 🧗'), 2000);
           } else {
             act.dir = -1;
           }
@@ -1257,10 +1287,7 @@
       const climbSpeed = 2.4;
 
       if (act.surfaceType === 'win-wall' && attachedWin) {
-        const targetWallX = act.wallSide === 'left'
-          ? attachedWin.x - Math.floor(act.width * 0.42)
-          : attachedWin.x + attachedWin.width - Math.floor(act.width * 0.58);
-        act.x = Math.max(0, Math.min(maxX, targetWallX));
+        act.x = getWindowWallX(act, attachedWin, maxX);
         act.y += act.climbDir * climbSpeed;
 
         const roofY = Math.max(0, attachedWin.y - act.height + FOOT_OFFSET);
@@ -1276,7 +1303,7 @@
               : Math.max(0, attachedWin.x + attachedWin.width - act.width - 18);
             act.x = safeRoofX;
             setSingleActorState(act, 'land', 20);
-            showActorSpeech(act, `${getFriendlyAppName(attachedWin)} 꼭대기 정복! ✨`, 2400);
+            showActorSpeech(act, resolveQuote(act, 'winTop', (n) => `${n} 꼭대기 정복! ✨`, getFriendlyAppName(attachedWin)), 2400);
           }
         } else {
           if (act.y >= bottomY - 6) {
@@ -1285,7 +1312,7 @@
               act.vx = (act.wallSide === 'left' ? -1 : 1) * 2.2;
               act.vy = 1;
               setSingleActorState(act, 'fall');
-              showActorSpeech(act, '폴짝 뛰어내리기! 🪂', 1800);
+              showActorSpeech(act, resolveQuote(act, 'jumpOffWall', '폴짝 뛰어내리기! 🪂'), 1800);
             } else {
               act.y = screenGroundY;
               act.dir = act.wallSide === 'left' ? -1 : 1;
@@ -1306,12 +1333,12 @@
             if (r < 0.70) {
               act.dir = act.wallSide === 'left' ? 1 : -1;
               setSingleActorState(act, 'ceiling', anyMaximizedFg ? 120 : 260);
-              showActorSpeech(act, '천장 산책 중~ 🌟', 2000);
+              showActorSpeech(act, resolveQuote(act, 'ceiling', '천장 산책 중~ 🌟'), 2000);
             } else {
               act.vx = act.wallSide === 'left' ? 3.0 : -3.0;
               act.vy = 0.5;
               setSingleActorState(act, 'fall');
-              showActorSpeech(act, '슈웅 다이빙~! 🪂', 2000);
+              showActorSpeech(act, resolveQuote(act, 'dive', '슈웅 다이빙~! 🪂'), 2000);
             }
           }
         } else {
@@ -1319,7 +1346,7 @@
             act.y = screenGroundY;
             act.dir = act.wallSide === 'left' ? 1 : -1;
             setSingleActorState(act, 'walk', 200);
-            showActorSpeech(act, '바닥 도착! 총총~', 1800);
+            showActorSpeech(act, resolveQuote(act, 'floorArrive', '바닥 도착! 총총~'), 1800);
           }
         }
       }
@@ -1343,7 +1370,7 @@
         act.vx = (Math.random() - 0.5) * 1.2;
         act.vy = 0.5;
         setSingleActorState(act, 'fall');
-        showActorSpeech(act, '착지 준비~! 🪂', 1600);
+        showActorSpeech(act, resolveQuote(act, 'fallReady', '착지 준비~! 🪂'), 1600);
       }
     } else {
       act.y = currentFloorY;
@@ -1368,7 +1395,10 @@
     if (act.state === 'walk' || act.state === 'ceiling' || act.state === 'fall') {
       scaleX = act.dir >= 0 ? 1 : -1;
     } else if (act.state === 'climb') {
-      scaleX = act.wallSide === 'right' ? 1 : -1;
+      // 창 옆벽은 창 바깥에서 창 쪽을 향해 손발을 짚고, 모니터 끝벽은 화면 끝 쪽을 향함
+      scaleX = act.surfaceType === 'win-wall'
+        ? (act.wallSide === 'left' ? 1 : -1)
+        : (act.wallSide === 'right' ? 1 : -1);
     } else {
       scaleX = 1;
     }
@@ -1390,6 +1420,15 @@
   // =========================================================
   // 3. 마우스 드래그(잡아서 낑낑) & 창 위에 직접 올려놓기 (1순위)
   // =========================================================
+  function getWindowWallX(act, win, maxX) {
+    // 135px 캔버스에서 손·발 끝(우측 여백 4px)이 창 테두리에 2px 정도 자연스럽게 맞닿도록 배치
+    const edgeOverlap = 6;
+    const rawX = act.wallSide === 'left'
+      ? win.x - act.width + edgeOverlap
+      : win.x + win.width - edgeOverlap;
+    return Math.max(0, Math.min(maxX, rawX));
+  }
+
   function handleActorDrop(act) {
     act.isDragging = false;
     act.el?.classList.remove('grabbing');
@@ -1407,7 +1446,7 @@
       act.y = hudRect.top - act.height + FOOT_OFFSET + 2;
       act.x = Math.max(hudRect.left, Math.min(hudRect.right - act.width, act.x));
       setSingleActorState(act, isWanderEnabled ? 'land' : 'idle', 20);
-      showActorSpeech(act, '미니창 위에 착! ✨', 2200);
+      showActorSpeech(act, resolveQuote(act, 'dropMiniHud', '미니창 위에 착! ✨'), 2200);
       return;
     }
 
@@ -1420,25 +1459,27 @@
         act.y = w.y - act.height + FOOT_OFFSET;
         act.x = Math.max(w.x + 10, Math.min(w.x + w.width - act.width - 10, act.x));
         setSingleActorState(act, isWanderEnabled ? 'land' : 'idle', 20);
-        showActorSpeech(act, `${getFriendlyAppName(w)} 지붕에 착! ✨`, 2400);
+        showActorSpeech(act, resolveQuote(act, 'dropOnWin', (n) => `${n} 지붕에 착! ✨`, getFriendlyAppName(w)), 2400);
         return;
       }
-      // 창 왼쪽/오른쪽 벽 근처에 놓았을 때
+      // 창 왼쪽/오른쪽 벽 근처에 놓았을 때 (손발을 벽에 갖다 댄 경우도 포함해 자연스럽게 인식)
       if (act.y + act.height > w.y && act.y < w.y + w.height) {
-        if (Math.abs(centerX - w.x) <= 32) {
+        if ((centerX >= w.x - 85 && centerX <= w.x + 32) || Math.abs((act.x + act.width) - w.x) <= 32) {
           attachToWindow(act, w, 'win-wall');
           act.wallSide = 'left';
           act.climbDir = -1;
+          act.x = getWindowWallX(act, w, maxX);
           setSingleActorState(act, 'climb', 260);
-          showActorSpeech(act, `${getFriendlyAppName(w)} 벽 잡았다! 🧗`, 2200);
+          showActorSpeech(act, resolveQuote(act, 'grabWinWall', (n) => `${n} 벽 잡았다! 🧗`, getFriendlyAppName(w)), 2200);
           return;
         }
-        if (Math.abs(centerX - (w.x + w.width)) <= 32) {
+        if ((centerX >= (w.x + w.width) - 32 && centerX <= (w.x + w.width) + 85) || Math.abs(act.x - (w.x + w.width)) <= 32) {
           attachToWindow(act, w, 'win-wall');
           act.wallSide = 'right';
           act.climbDir = -1;
+          act.x = getWindowWallX(act, w, maxX);
           setSingleActorState(act, 'climb', 260);
-          showActorSpeech(act, `${getFriendlyAppName(w)} 벽 잡았다! 🧗`, 2200);
+          showActorSpeech(act, resolveQuote(act, 'grabWinWall', (n) => `${n} 벽 잡았다! 🧗`, getFriendlyAppName(w)), 2200);
           return;
         }
       }
@@ -1448,24 +1489,24 @@
     if (act.y <= 24) {
       act.y = 8;
       setSingleActorState(act, 'ceiling', 220);
-      showActorSpeech(act, '천장에 착! 🌟', 1800);
+      showActorSpeech(act, resolveQuote(act, 'dropCeiling', '천장에 착! 🌟'), 1800);
     } else if (act.x <= 16) {
       act.x = 0;
       act.wallSide = 'left';
       act.climbDir = -1;
       setSingleActorState(act, 'climb', 240);
-      showActorSpeech(act, '벽 잡았다! 영차~', 1800);
+      showActorSpeech(act, resolveQuote(act, 'climb', '벽 잡았다! 영차~'), 1800);
     } else if (act.x >= maxX - 16) {
       act.x = maxX;
       act.wallSide = 'right';
       act.climbDir = -1;
       setSingleActorState(act, 'climb', 240);
-      showActorSpeech(act, '벽 잡았다! 영차~', 1800);
+      showActorSpeech(act, resolveQuote(act, 'climb', '벽 잡았다! 영차~'), 1800);
     } else {
       act.vx = 0;
       act.vy = 0.5;
       setSingleActorState(act, 'fall');
-      showActorSpeech(act, cfg.quotes?.land || '휴~ 살았다!', 1400);
+      showActorSpeech(act, resolveQuote(act, 'fallSoft', '휴~ 살았다!'), 1400);
     }
   }
 
@@ -1485,8 +1526,8 @@
         act.y = Math.max(0, Math.min(window.innerHeight - act.height, e.clientY - act.dragOffsetY));
         act.lastMouseX = e.clientX;
         setSingleActorState(act, 'grabbed', 9999);
-        const cfg = charConfigs[act.charType] || charConfigs.kurimanju;
-        const list = Array.isArray(cfg.quotes?.grabbed) ? cfg.quotes.grabbed : ['으으.. 낑낑💦', '파닥파닥.. 내려줘~!'];
+        const quotes = getActorQuotes(act);
+        const list = Array.isArray(quotes.struggle) ? quotes.struggle : (Array.isArray(quotes.grabbed) ? quotes.grabbed : ['으으.. 낑낑💦', '파닥파닥.. 내려줘~!']);
         const msg = list[Math.floor(Math.random() * list.length)];
         showActorSpeech(act, msg, 0);
         playPopSound();
@@ -1550,10 +1591,50 @@
     renderBookmarks();
   }
 
+  function getDisplayBookmarkIcon(bm) {
+    const ui = getActorConfig(mainActor).ui || {};
+    const defaultEmoji = ui.bagDefaultEmoji || '🌰';
+    const rawIcon = bm?.icon || defaultEmoji;
+    if (currentMainChar === 'rakko') {
+      const rakkoIconMap = {
+        '🌰': '🔑',
+        '🍺': '🏎️',
+        '🍘': '🚗',
+        '☕': '🗝️'
+      };
+      return rakkoIconMap[rawIcon] || rawIcon;
+    }
+    return rawIcon;
+  }
+
+  function renderEmojiSelector() {
+    if (!emojiSelector) return;
+    const ui = getActorConfig(mainActor).ui || {};
+    const emojiList = Array.isArray(ui.bagEmojiList) && ui.bagEmojiList.length > 0
+      ? ui.bagEmojiList
+      : ['🌰', '🍺', '🍘', '☕', '📺', '💻', '🎵', '🎮'];
+
+    if (!emojiList.includes(selectedEmoji)) {
+      selectedEmoji = ui.bagDefaultEmoji || emojiList[0];
+    }
+
+    emojiSelector.innerHTML = '';
+    emojiList.forEach((em) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `emoji-opt${em === selectedEmoji ? ' selected' : ''}`;
+      btn.dataset.emoji = em;
+      btn.textContent = em;
+      emojiSelector.appendChild(btn);
+    });
+  }
+
   function renderBookmarks() {
     bookmarkListEl.innerHTML = '';
     if (!bookmarks || bookmarks.length === 0) {
-      bookmarkListEl.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; color:#557A64;">가방이 비어있어요! 아래 버튼으로 자주 가는 사이트를 넣어보세요 🎒</div>`;
+      const emptyText = getActorConfig(mainActor).ui?.bagEmptyText
+        || '가방이 비어있어요! 아래 버튼으로 자주 가는 사이트를 넣어보세요 🎒';
+      bookmarkListEl.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; color:#557A64;">${escapeHtml(emptyText)}</div>`;
       return;
     }
 
@@ -1564,7 +1645,7 @@
       const linkBtn = document.createElement('button');
       linkBtn.className = 'bookmark-link-btn';
       linkBtn.innerHTML = `
-        <span class="bm-icon">${bm.icon || '🌰'}</span>
+        <span class="bm-icon">${getDisplayBookmarkIcon(bm)}</span>
         <div class="bm-info">
           <div class="bm-name">${escapeHtml(bm.name)}</div>
           <div class="bm-url">${escapeHtml(bm.url)}</div>
@@ -1572,7 +1653,7 @@
       `;
       linkBtn.addEventListener('click', () => {
         window.electronAPI?.openExternalUrl(bm.url);
-        showActorSpeech(mainActor, `「${bm.name}」 꺼냈다! 다녀와~ ✨`, 2800);
+        showActorSpeech(mainActor, resolveQuote(mainActor, 'bagPick', (n) => `「${n}」 꺼냈다! 다녀와~ ✨`, bm.name), 2800);
         playHaaFanfare();
         closeBagMenu(true);
       });
@@ -1610,7 +1691,7 @@
     }
 
     setSingleActorState(mainActor, 'bag', 9999);
-    showActorSpeech(mainActor, '부스럭.. 어느 간식을 꺼낼까? 🎒', 0);
+    showActorSpeech(mainActor, resolveQuote(mainActor, 'bagOpen', '부스럭.. 어느 간식을 꺼낼까? 🎒'), 0);
     playRummageSound();
 
     bagMenu.classList.remove('hidden');
@@ -1699,7 +1780,7 @@
     bmUrlInput.value = '';
     addBookmarkForm.classList.add('hidden');
     btnShowAddForm.classList.remove('hidden');
-    showActorSpeech(mainActor, `「${name}」 가방에 쏙 넣었다! 🎒`, 2500);
+    showActorSpeech(mainActor, resolveQuote(mainActor, 'bagAdd', (n) => `「${n}」 가방에 쏙 넣었다! 🎒`, name), 2500);
     playPopSound();
   });
 
@@ -1755,7 +1836,7 @@
       spawnKurimanju(true);
     } else if (mainActor.state === 'sleep' || mainActor.state === 'dream') {
       pickNextGroundBehavior(mainActor);
-      showActorSpeech(mainActor, '자, 다시 시작해볼까! ✨', 2200);
+      showActorSpeech(mainActor, resolveQuote(mainActor, 'timerStart', '자, 다시 시작해볼까! ✨'), 2200);
     }
 
     if (isFriendActive && friendActor.spawned && (friendActor.state === 'sleep' || friendActor.state === 'dream')) {
@@ -1788,15 +1869,15 @@
     if (isTimerPaused) {
       btnPauseTimer.textContent = '▶ 계속하기';
       setSingleActorState(mainActor, 'dream', 9999);
-      showActorSpeech(mainActor, '잠시 달콤한 낮잠 시간.. 😴💤', 0);
+      showActorSpeech(mainActor, resolveQuote(mainActor, 'timerPause', '잠시 달콤한 낮잠 시간.. 😴💤'), 0);
       if (isFriendActive && friendActor.spawned) {
         setSingleActorState(friendActor, 'dream', 9999);
-        showActorSpeech(friendActor, '스승님도 낮잠 중.. 💤', 0);
+        showActorSpeech(friendActor, resolveQuote(friendActor, 'friendPause', '잠시 휴식 중.. 💤'), 0);
       }
     } else {
       btnPauseTimer.textContent = '⏸ 일시정지';
       pickNextGroundBehavior(mainActor);
-      showActorSpeech(mainActor, '다시 집중해서 일해보자구! ✨', 2000);
+      showActorSpeech(mainActor, resolveQuote(mainActor, 'timerResume', '다시 집중해서 일해보자구! ✨'), 2000);
       if (isFriendActive && friendActor.spawned) {
         pickNextGroundBehavior(friendActor);
       }
@@ -1910,7 +1991,7 @@
     inputMinutes.value = 5;
     inputSeconds.value = 0;
     startTimer(5 * 60);
-    showActorSpeech(mainActor, '5분 동안 꿀맛 휴식하자~ 🍘', 3000);
+    showActorSpeech(mainActor, resolveQuote(mainActor, 'timerBreak', '5분 동안 꿀맛 휴식하자~ 🍘'), 3000);
   });
 
   btnToastBag.addEventListener('click', () => {
@@ -1934,27 +2015,51 @@
       const groundY = window.innerHeight - mainActor.height - 6;
       const maxX = window.innerWidth - mainActor.width;
 
+      const quotes = getActorQuotes(mainActor);
+      const calmPoseQuotes = quotes.calmPose || {};
+      const gestureQuotes = quotes.gesture || {};
+      const getGestureQuote = (key, fallback, ...args) => {
+        const val = gestureQuotes[key];
+        if (typeof val === 'function') return val(...args);
+        if (typeof val === 'string') return val;
+        return typeof fallback === 'function' ? fallback(...args) : fallback;
+      };
+
       if (!isWanderEnabled && action !== 'drop') {
-        const poseMap = {
-          dream: { state: 'dream', speech: '쿨쿨.. 달콤한 낮잠 중 💤' },
-          sleep: { state: 'sleep', speech: '으윽.. 휴식이다 💤' },
-          land: { state: 'land', speech: '납작하게 엎드려 있는 중~ 🙇' },
-          idle: { state: 'idle', speech: '얌전히 멍때리는 중 👀' },
-          snack: { state: 'snack', speech: '오물오물.. 간식 먹는 중 🍘' },
-          haa: { state: 'haa', speech: '하아ー(ハーッ)!! ✨' },
-          bag: { state: 'bag', speech: '가방 뒤적뒤적.. 🎒' },
-          walk: { state: 'idle', speech: '얌전 모드라 제자리 대기 중! 🐾' },
-          'climb-up': { state: 'climb', speech: '벽에 찰싹 붙어있기! 🧗' },
-          'climb-down': { state: 'climb', speech: '벽에 찰싹 붙어있기! 🧗' },
-          ceiling: { state: 'ceiling', speech: '천장에 대롱대롱 매달리기! 🦇' }
+        const poseStateMap = {
+          dream: 'dream',
+          sleep: 'sleep',
+          land: 'land',
+          idle: 'idle',
+          snack: 'snack',
+          haa: 'haa',
+          bag: 'bag',
+          walk: 'idle',
+          'climb-up': 'climb',
+          'climb-down': 'climb',
+          ceiling: 'ceiling'
+        };
+        const defaultPoseSpeechMap = {
+          dream: '쿨쿨.. 달콤한 낮잠 중 💤',
+          sleep: '으윽.. 휴식이다 💤',
+          land: '납작하게 엎드려 있는 중~ 🙇',
+          idle: '얌전히 멍때리는 중 👀',
+          snack: '오물오물.. 간식 먹는 중 🍘',
+          haa: '하아ー(ハーッ)!! ✨',
+          bag: '가방 뒤적뒤적.. 🎒',
+          walk: '얌전 모드라 제자리 대기 중! 🐾',
+          'climb-up': '벽에 찰싹 붙어있기! 🧗',
+          'climb-down': '벽에 찰싹 붙어있기! 🧗',
+          ceiling: '천장에 대롱대롱 매달리기! 🦇'
         };
 
-        const targetPose = poseMap[action] || { state: action, speech: '이 자세로 가만히 있을게! ✨' };
-        lockedPose = targetPose.state;
-        setSingleActorState(mainActor, targetPose.state, 9999);
-        showActorSpeech(mainActor, targetPose.speech, 2400);
+        const targetState = poseStateMap[action] || action;
+        const targetSpeech = calmPoseQuotes[action] || defaultPoseSpeechMap[action] || calmPoseQuotes.default || '이 자세로 가만히 있을게! ✨';
+        lockedPose = targetState;
+        setSingleActorState(mainActor, targetState, 9999);
+        showActorSpeech(mainActor, targetSpeech, 2400);
         if (isFriendActive && friendActor.spawned) {
-          setSingleActorState(friendActor, targetPose.state, 9999);
+          setSingleActorState(friendActor, targetState, 9999);
         }
         return;
       }
@@ -1967,38 +2072,39 @@
           mainActor.y = priorityWindow.y - mainActor.height + FOOT_OFFSET;
           mainActor.dir = 1;
           setSingleActorState(mainActor, 'walk', 260);
-          showActorSpeech(mainActor, `${getFriendlyAppName(priorityWindow)} 지붕 산책 중! 🐾`, 2200);
+          showActorSpeech(mainActor, getGestureQuote('walkWin', (n) => `${n} 지붕 산책 중! 🐾`, getFriendlyAppName(priorityWindow)), 2200);
         } else {
           attachToWindow(mainActor, null, 'screen');
           mainActor.y = groundY;
           mainActor.dir = Math.random() < 0.5 ? -1 : 1;
           setSingleActorState(mainActor, 'walk', 260);
-          showActorSpeech(mainActor, '바닥 총총 산책 중 🐾', 2000);
+          showActorSpeech(mainActor, getGestureQuote('walkFloor', '바닥 총총 산책 중 🐾'), 2000);
         }
       } else if (action === 'dream') {
         setSingleActorState(mainActor, 'dream', 260);
-        showActorSpeech(mainActor, '쿨쿨.. 달콤한 낮잠 타임 💤', 2400);
+        showActorSpeech(mainActor, getGestureQuote('dream', '쿨쿨.. 달콤한 낮잠 타임 💤'), 2400);
         if (isFriendActive && friendActor.spawned) setSingleActorState(friendActor, 'dream', 260);
       } else if (action === 'sleep') {
         setSingleActorState(mainActor, 'sleep', 260);
-        showActorSpeech(mainActor, '으윽.. 휴식이다 💤', 2400);
+        showActorSpeech(mainActor, getGestureQuote('sleep', '으윽.. 휴식이다 💤'), 2400);
         if (isFriendActive && friendActor.spawned) setSingleActorState(friendActor, 'sleep', 260);
       } else if (action === 'land') {
         setSingleActorState(mainActor, 'land', 240);
-        showActorSpeech(mainActor, '납작하게 엎드리기~ 🙇', 2200);
+        showActorSpeech(mainActor, getGestureQuote('land', '납작하게 엎드리기~ 🙇'), 2200);
         if (isFriendActive && friendActor.spawned) setSingleActorState(friendActor, 'land', 240);
       } else if (action === 'idle') {
         setSingleActorState(mainActor, 'idle', 220);
-        showActorSpeech(mainActor, '물끄러미 바라보기.. 👀', 2000);
+        showActorSpeech(mainActor, getGestureQuote('idle', '물끄러미 바라보기.. 👀'), 2000);
         if (isFriendActive && friendActor.spawned) setSingleActorState(friendActor, 'idle', 220);
       } else if (action === 'climb-up') {
         if (priorityWindow && isClimbableWindow(priorityWindow)) {
           attachToWindow(mainActor, priorityWindow, 'win-wall');
-          mainActor.wallSide = priorityWindow.x > 40 ? 'left' : 'right';
+          mainActor.wallSide = priorityWindow.x >= mainActor.width - 10 ? 'left' : 'right';
+          mainActor.x = getWindowWallX(mainActor, priorityWindow, maxX);
           mainActor.y = Math.min(groundY, priorityWindow.y + priorityWindow.height - mainActor.height);
           mainActor.climbDir = -1;
           setSingleActorState(mainActor, 'climb', 320);
-          showActorSpeech(mainActor, `${getFriendlyAppName(priorityWindow)} 벽 타고 올라간다~ 🧗`, 2400);
+          showActorSpeech(mainActor, getGestureQuote('climbWin', (n) => `${n} 벽 타고 올라간다~ 🧗`, getFriendlyAppName(priorityWindow)), 2400);
         } else {
           attachToWindow(mainActor, null, 'screen');
           mainActor.wallSide = mainActor.x < window.innerWidth / 2 ? 'left' : 'right';
@@ -2006,7 +2112,7 @@
           mainActor.y = groundY - 10;
           mainActor.climbDir = -1;
           setSingleActorState(mainActor, 'climb', 320);
-          showActorSpeech(mainActor, '모니터 벽 타고 올라간다~ 🧗', 2400);
+          showActorSpeech(mainActor, getGestureQuote('climbWall', '모니터 벽 타고 올라간다~ 🧗'), 2400);
         }
       } else if (action === 'climb-down') {
         attachToWindow(mainActor, null, 'screen');
@@ -2015,13 +2121,13 @@
         mainActor.y = 20;
         mainActor.climbDir = 1;
         setSingleActorState(mainActor, 'climb', 320);
-        showActorSpeech(mainActor, '조심조심 위에서 내려가는 중~ 🧗‍♂️', 2400);
+        showActorSpeech(mainActor, getGestureQuote('climbDown', '조심조심 위에서 내려가는 중~ 🧗‍♂️'), 2400);
       } else if (action === 'ceiling') {
         attachToWindow(mainActor, null, 'screen');
         mainActor.y = 8;
         mainActor.dir = 1;
         setSingleActorState(mainActor, 'ceiling', 300);
-        showActorSpeech(mainActor, '천장에 매달려서 이동 중! ✨', 2400);
+        showActorSpeech(mainActor, getGestureQuote('ceiling', '천장에 매달려서 이동 중! ✨'), 2400);
       } else if (action === 'drop') {
         attachToWindow(mainActor, null, 'screen');
         if (isWanderEnabled && priorityWindow && priorityWindow.y >= 55) {
@@ -2036,7 +2142,7 @@
         mainActor.vx = 0;
         mainActor.vy = 0.6;
         setSingleActorState(mainActor, 'fall');
-        showActorSpeech(mainActor, '제일 높은 곳에서 아래로 슈웅~! 🪂', 2000);
+        showActorSpeech(mainActor, getGestureQuote('drop', '제일 높은 곳에서 아래로 슈웅~! 🪂'), 2000);
       } else if (action === 'snack') {
         setSingleActorState(mainActor, 'snack', 240);
         const cfg = charConfigs[mainActor.charType] || charConfigs.kurimanju;
@@ -2065,9 +2171,10 @@
   function updateThemeAndFriendUI() {
     const isRakko = currentMainChar === 'rakko';
     const iconSrc = isRakko ? 'assets/rakko.png' : 'assets/icon.png';
+    const ui = getActorConfig(mainActor).ui || {};
 
     document.body.classList.toggle('theme-rakko', isRakko);
-    document.title = isRakko ? '랏코 스승님 시메지 타이머' : '쿠리만쥬 시메지 타이머';
+    document.title = ui.docTitle || (isRakko ? '랏코 스승님 시메지 타이머' : '쿠리만쥬 시메지 타이머');
 
     btnThemeKurimanju?.classList.toggle('active', !isRakko);
     btnThemeRakko?.classList.toggle('active', isRakko);
@@ -2082,18 +2189,62 @@
       headerIconImg.setAttribute('src', iconSrc);
     }
     if (panelTitleH1) {
-      panelTitleH1.textContent = isRakko ? '랏코 스승님의 모험 타이머' : '쿠리만쥬 뽀모도로 타이머';
+      panelTitleH1.textContent = ui.panelTitle || (isRakko ? '랏코 스승님의 모험 타이머' : '쿠리만쥬 뽀모도로 타이머');
     }
     if (panelSubtitleP) {
-      panelSubtitleP.textContent = isRakko
+      panelSubtitleP.textContent = ui.panelSubtitle || (isRakko
         ? '스승님과 함께하는 고요하고 늠름한 집중 시간 ⚔️'
-        : '퇴근 후 시원한 한 잔을 기다리며 일하는 미니 시메지 타이머 🍺';
+        : '퇴근 후 시원한 한 잔을 기다리며 일하는 미니 시메지 타이머 🍺');
     }
     if (btnStartTimer && !isTimerRunning) {
-      btnStartTimer.textContent = isRakko
+      btnStartTimer.textContent = ui.startBtn || (isRakko
         ? '▶ 타이머 시작 & 랏코 스승님 소환'
-        : '▶ 타이머 시작 & 쿠리만쥬 소환';
+        : '▶ 타이머 시작 & 쿠리만쥬 소환');
     }
+
+    const bagKnotEl = bagMenu?.querySelector('.bag-knot-icon');
+    const bagTitleH3 = bagMenu?.querySelector('.bag-title h3');
+    const bagTitleP = bagMenu?.querySelector('.bag-title p');
+    const bagSaveBtn = bagMenu?.querySelector('.btn-save');
+    const bagEffectTagEl = bagEffectRing?.querySelector('.effect-tag');
+    if (bagKnotEl && ui.bagKnotIcon) bagKnotEl.textContent = ui.bagKnotIcon;
+    if (bagTitleH3 && ui.bagTitle) bagTitleH3.textContent = ui.bagTitle;
+    if (bagTitleP && ui.bagDesc) bagTitleP.textContent = ui.bagDesc;
+    if (btnCloseBag && ui.bagCloseTitle) btnCloseBag.title = ui.bagCloseTitle;
+    if (btnShowAddForm && ui.bagAddBtn) btnShowAddForm.textContent = ui.bagAddBtn;
+    if (bagSaveBtn && ui.bagSaveBtn) bagSaveBtn.textContent = ui.bagSaveBtn;
+    if (bagEffectTagEl && ui.bagEffectTag) bagEffectTagEl.textContent = ui.bagEffectTag;
+
+    const toastTitleEl = timerDoneToast?.querySelector('.toast-title');
+    const toastDescEl = timerDoneToast?.querySelector('.toast-desc');
+    if (toastTitleEl && ui.toastTitle) toastTitleEl.textContent = ui.toastTitle;
+    if (toastDescEl && ui.toastDesc) toastDescEl.textContent = ui.toastDesc;
+    if (btnToastBreak && ui.toastBreakBtn) btnToastBreak.textContent = ui.toastBreakBtn;
+    if (btnToastBag && ui.toastBagBtn) btnToastBag.textContent = ui.toastBagBtn;
+
+    const btnSleep = setupPanel?.querySelector('.gesture-btn[data-action="sleep"]');
+    const btnSnack = setupPanel?.querySelector('.gesture-btn[data-action="snack"]');
+    const btnHaa = setupPanel?.querySelector('.gesture-btn[data-action="haa"]');
+    const btnBag = setupPanel?.querySelector('.gesture-btn[data-action="bag"]');
+    if (btnSleep && ui.gestureSleep) btnSleep.textContent = ui.gestureSleep;
+    if (btnSnack && ui.gestureSnack) btnSnack.textContent = ui.gestureSnack;
+    if (btnHaa && ui.gestureHaa) btnHaa.textContent = ui.gestureHaa;
+    if (btnBag && ui.bagGestureBtn) btnBag.textContent = ui.bagGestureBtn;
+
+    const guideTipEl = setupPanel?.querySelector('.guide-tip');
+    if (guideTipEl && ui.guideTipHtml) guideTipEl.innerHTML = ui.guideTipHtml;
+
+    if (miniHudCollapsed) {
+      miniHudCollapsed.title = `클릭하면 ${isRakko ? '랏코 스승님' : '쿠리만쥬'} 타이머 바가 다시 열려요`;
+    }
+    if (btnOpenBagHud) {
+      if (ui.bagHudBtn) btnOpenBagHud.textContent = ui.bagHudBtn;
+      btnOpenBagHud.title = ui.bagHudTitle || `${isRakko ? '랏코 스승님' : '쿠리만쥬'} 가방(북마크) 열기`;
+    }
+
+    selectedEmoji = ui.bagDefaultEmoji || (isRakko ? '🔑' : '🌰');
+    renderEmojiSelector();
+    renderBookmarks();
 
     const friendChar = isRakko ? 'kurimanju' : 'rakko';
     const friendName = friendChar === 'rakko' ? '랏코 스승님' : '쿠리만쥬';
@@ -2151,13 +2302,13 @@
       spawnActor(friendActor, true);
       const friendCfg = charConfigs[friendActor.charType];
       showActorSpeech(friendActor, friendCfg.quotes?.spawn || '나도 왔다! 🐾', 2800);
-      showActorSpeech(mainActor, '친구가 놀러왔다! 🥳', 2200);
+      showActorSpeech(mainActor, resolveQuote(mainActor, 'friendSpawn', '친구가 놀러왔다! 🥳'), 2200);
       playHaaFanfare();
     } else {
       friendActor.spawned = false;
       friendActorEl?.classList.add('hidden');
       friendSpeech?.classList.add('hidden');
-      showActorSpeech(mainActor, '친구야, 다음에 또 놀러와~ 👋', 2400);
+      showActorSpeech(mainActor, resolveQuote(mainActor, 'dismissFriend', '친구야, 다음에 또 놀러와~ 👋'), 2400);
     }
 
     updateThemeAndFriendUI();
@@ -2181,15 +2332,15 @@
         playHaaFanfare();
         if (mode === 'desktop-single') {
           const charName = currentMainChar === 'rakko' ? '랏코 스승님' : '쿠리만쥬';
-          showActorSpeech(mainActor, `바탕화면에 「${charName}」 바로가기 생성 완료! 🖥️✨`, 3400);
+          showActorSpeech(mainActor, resolveQuote(mainActor, 'shortcutDesktop', (n) => `바탕화면에 「${n}」 바로가기 생성 완료! 🖥️✨`, charName), 3400);
         } else {
-          showActorSpeech(mainActor, '실행 폴더에 쿠리만쥬·랏코 바로가기 모두 생성 완료! 📂✨', 3600);
+          showActorSpeech(mainActor, resolveQuote(mainActor, 'shortcutAll', '실행 폴더에 쿠리만쥬·랏코 바로가기 모두 생성 완료! 📂✨'), 3600);
         }
       } else {
-        showActorSpeech(mainActor, `바로가기 생성 실패 💦 (${res?.error || '오류'})`, 3200);
+        showActorSpeech(mainActor, resolveQuote(mainActor, 'shortcutErrDetail', (err) => `바로가기 생성 실패 💦 (${err || '오류'})`, res?.error), 3200);
       }
     } catch (_) {
-      showActorSpeech(mainActor, '바로가기 생성 중 오류가 발생했어요 💦', 3200);
+      showActorSpeech(mainActor, resolveQuote(mainActor, 'shortcutErr', '바로가기 생성 중 오류가 발생했어요 💦'), 3200);
     } finally {
       if (btnShortcutDesktop) btnShortcutDesktop.disabled = false;
       if (btnShortcutAll) btnShortcutAll.disabled = false;
@@ -2259,7 +2410,7 @@
       if (btnCheckUpdate) btnCheckUpdate.disabled = true;
     } else if (data.status === 'available') {
       if (appVersionText) appVersionText.textContent = `${verPrefix} · v${data.version} 발견! 다운로드 시작`;
-      showActorSpeech(mainActor, `새 버전(v${data.version})을 발견해서 받고 있어! 📥`, 3000);
+      showActorSpeech(mainActor, resolveQuote(mainActor, 'updateAvailable', (v) => `새 버전(v${v})을 발견해서 받고 있어! 📥`, data.version), 3000);
     } else if (data.status === 'downloading') {
       if (appVersionText) appVersionText.textContent = `${verPrefix} · 다운로드 중 (${data.percent || 0}%)`;
     } else if (data.status === 'downloaded') {
@@ -2277,7 +2428,7 @@
         updateToastDesc.textContent = '지금 재시작하면 자동으로 최신 버전이 적용됩니다.';
       }
       updateReadyToast?.classList.remove('hidden');
-      showActorSpeech(mainActor, `업데이트(v${data.version}) 준비 끝! 재시작할까? 🚀`, 4000);
+      showActorSpeech(mainActor, resolveQuote(mainActor, 'updateDownloaded', (v) => `업데이트(v${v}) 준비 끝! 재시작할까? 🚀`, data.version), 4000);
       playHaaFanfare();
     } else if (data.status === 'latest') {
       if (appVersionText) appVersionText.textContent = `${verPrefix} · 최신 버전입니다`;
@@ -2297,13 +2448,13 @@
       const res = await window.electronAPI.checkForUpdates();
       if (res?.devMode) {
         if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 개발 모드`;
-        showActorSpeech(mainActor, '설치(.exe) 후에는 자동으로 최신 버전을 받아와요! ✨', 3200);
+        showActorSpeech(mainActor, resolveQuote(mainActor, 'updateDevMode', '설치(.exe) 후에는 자동으로 최신 버전을 받아와요! ✨'), 3200);
       } else if (res && !res.ok) {
         if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 확인 실패`;
-        showActorSpeech(mainActor, '업데이트 서버를 아직 찾지 못했어요 (GitHub Release 확인) 💦', 3200);
+        showActorSpeech(mainActor, resolveQuote(mainActor, 'updateNotFound', '업데이트 서버를 아직 찾지 못했어요 (GitHub Release 확인) 💦'), 3200);
       } else if (res && res.ok && res.version === currentAppVersion) {
         if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 최신 버전입니다`;
-        showActorSpeech(mainActor, `현재 최신 버전(v${currentAppVersion})을 사용 중이야! 🌟`, 2600);
+        showActorSpeech(mainActor, resolveQuote(mainActor, 'updateLatest', (v) => `현재 최신 버전(v${v})을 사용 중이야! 🌟`, currentAppVersion), 2600);
       }
     } catch (_) {
       if (appVersionText) appVersionText.textContent = `v${currentAppVersion} · 확인 실패`;
@@ -2317,7 +2468,7 @@
   btnUpdateRestart?.addEventListener('click', () => window.electronAPI?.installUpdateNow());
   btnUpdateLater?.addEventListener('click', () => {
     updateReadyToast?.classList.add('hidden');
-    showActorSpeech(mainActor, '알겠어! 프로그램 종료 시 자동으로 적용될 거야~ 🌰', 2800);
+    showActorSpeech(mainActor, resolveQuote(mainActor, 'updateLater', '알겠어! 프로그램 종료 시 자동으로 적용될 거야~ 🌰'), 2800);
   });
 
   window.electronAPI?.onUpdateStatus?.((data) => renderUpdateState(data));
